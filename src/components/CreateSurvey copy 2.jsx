@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Plus, Trash2, GripVertical, Copy, ChevronDown, ChevronUp, ArrowUp, ArrowDown } from 'lucide-react';
-import { mockSurveys } from '../utils/mockData';
+import { mockStores, mockSurveys } from '../utils/mockData';
 
 const CreateSurvey = () => {
   const [surveyName, setSurveyName] = useState('');
-  const [selectedBrand, setSelectedBrand] = useState('');
+  const [selectedStore, setSelectedStore] = useState('');
   const [header, setHeader] = useState('We value your feedback!');
   const [headerSubtext, setHeaderSubtext] = useState('Help us serve you better every day.');
   const [footer, setFooter] = useState('Your feedback is private • Better experience • Exclusive offers • We value your privacy');
@@ -17,13 +17,6 @@ const CreateSurvey = () => {
   ]);
   const [expandedQuestion, setExpandedQuestion] = useState(null);
   const [dragOverIndex, setDragOverIndex] = useState(null);
-
-  const brands = [
-    { id: 'kfc', name: 'KFC', color: 'orange' },
-    { id: 'pizza_hut', name: 'Pizza Hut', color: 'red' },
-    { id: 'taco_bell', name: 'Taco Bell', color: 'purple' },
-    { id: 'all_brands', name: 'All Brands', color: 'blue' }
-  ];
 
   const questionTypes = [
     { value: 'rating', label: 'Rating Scale (1-5)' },
@@ -68,6 +61,7 @@ const CreateSurvey = () => {
     ));
   };
 
+  // Move question up
   const moveQuestionUp = (index) => {
     if (index > 0) {
       const newQuestions = [...questions];
@@ -76,6 +70,7 @@ const CreateSurvey = () => {
     }
   };
 
+  // Move question down
   const moveQuestionDown = (index) => {
     if (index < questions.length - 1) {
       const newQuestions = [...questions];
@@ -84,6 +79,7 @@ const CreateSurvey = () => {
     }
   };
 
+  // Drag and drop handlers
   const handleDragStart = (e, index) => {
     e.dataTransfer.setData('text/plain', index);
     e.dataTransfer.effectAllowed = 'move';
@@ -114,17 +110,18 @@ const CreateSurvey = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!surveyName || !selectedBrand) {
-      alert('Please fill in survey name and select a brand');
+    if (!surveyName || !selectedStore) {
+      alert('Please fill in survey name and select a store');
       return;
     }
 
-    const brand = brands.find(b => b.id === selectedBrand);
+    const store = mockStores.find(s => s.id === selectedStore);
     const newSurvey = {
       id: `survey${mockSurveys.length + 1}`,
       name: surveyName,
-      brand: brand.name,
-      brandId: selectedBrand,
+      storeId: selectedStore,
+      storeName: store.name,
+      brand: store.brand,
       status: 'draft',
       createdAt: new Date().toISOString().split('T')[0],
       responses: 0,
@@ -140,14 +137,14 @@ const CreateSurvey = () => {
     
     // Reset form
     setSurveyName('');
-    setSelectedBrand('');
+    setSelectedStore('');
   };
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Create New Survey</h1>
-        <p className="text-gray-500 mt-1">Design customer feedback surveys across brands</p>
+        <p className="text-gray-500 mt-1">Design your customer feedback survey</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -167,21 +164,18 @@ const CreateSurvey = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Select Brand</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Select Store</label>
               <select
-                value={selectedBrand}
-                onChange={(e) => setSelectedBrand(e.target.value)}
+                value={selectedStore}
+                onChange={(e) => setSelectedStore(e.target.value)}
                 className="input-field"
                 required
               >
-                <option value="">Choose a brand...</option>
-                {brands.map(brand => (
-                  <option key={brand.id} value={brand.id}>{brand.name}</option>
+                <option value="">Choose a store...</option>
+                {mockStores.map(store => (
+                  <option key={store.id} value={store.id}>{store.name} - {store.location}</option>
                 ))}
               </select>
-              <p className="text-xs text-gray-500 mt-1">
-                Select which brand this survey is for
-              </p>
             </div>
           </div>
         </div>
@@ -197,7 +191,6 @@ const CreateSurvey = () => {
                 value={header}
                 onChange={(e) => setHeader(e.target.value)}
                 className="input-field"
-                placeholder="We value your feedback!"
               />
             </div>
             <div>
@@ -207,7 +200,6 @@ const CreateSurvey = () => {
                 value={headerSubtext}
                 onChange={(e) => setHeaderSubtext(e.target.value)}
                 className="input-field"
-                placeholder="Help us serve you better"
               />
             </div>
             <div>
@@ -217,7 +209,6 @@ const CreateSurvey = () => {
                 onChange={(e) => setFooter(e.target.value)}
                 className="input-field"
                 rows="2"
-                placeholder="Thank you for your feedback!"
               />
             </div>
           </div>
@@ -264,6 +255,7 @@ const CreateSurvey = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
+                    {/* Move up button */}
                     <button
                       type="button"
                       onClick={() => moveQuestionUp(index)}
@@ -278,6 +270,7 @@ const CreateSurvey = () => {
                       <ArrowUp size={18} />
                     </button>
                     
+                    {/* Move down button */}
                     <button
                       type="button"
                       onClick={() => moveQuestionDown(index)}
@@ -292,6 +285,7 @@ const CreateSurvey = () => {
                       <ArrowDown size={18} />
                     </button>
                     
+                    {/* Duplicate button */}
                     <button
                       type="button"
                       onClick={() => duplicateQuestion(question.id)}
@@ -301,6 +295,7 @@ const CreateSurvey = () => {
                       <Copy size={18} />
                     </button>
                     
+                    {/* Expand/Collapse button */}
                     <button
                       type="button"
                       onClick={() => setExpandedQuestion(expandedQuestion === question.id ? null : question.id)}
@@ -309,6 +304,7 @@ const CreateSurvey = () => {
                       {expandedQuestion === question.id ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                     </button>
                     
+                    {/* Delete button */}
                     <button
                       type="button"
                       onClick={() => removeQuestion(question.id)}
@@ -400,6 +396,7 @@ const CreateSurvey = () => {
                       </div>
                     )}
 
+                    {/* Preview of question order */}
                     <div className="mt-4 pt-4 border-t border-gray-100">
                       <p className="text-xs text-gray-500">
                         Question order: #{index + 1} of {questions.length}
