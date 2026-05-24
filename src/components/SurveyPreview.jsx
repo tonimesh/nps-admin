@@ -94,10 +94,10 @@ const SurveyPreview = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
+        {/* <div>
           <h1 className="text-2xl font-bold text-gray-900">Survey Preview</h1>
           <p className="text-gray-500 mt-1">Preview and edit your customer-facing survey</p>
-        </div>
+        </div> */}
         
         <div className="flex gap-3">
           {isEditing ? (

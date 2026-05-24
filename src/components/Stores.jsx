@@ -247,11 +247,13 @@ const Stores = () => {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
+            {/* <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"> */}
+                {/* <div>
                     <h1 className="text-2xl font-bold text-gray-900">Stores</h1>
                     <p className="text-gray-500 mt-1">Manage your store locations and details</p>
-                </div>
+                </div> */}
+                <div className="flex justify-end">
+
                 <button
                     onClick={() => setShowAddModal(true)}
                     className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 transition-all duration-300 shadow-lg hover:shadow-orange-300"
@@ -259,7 +261,8 @@ const Stores = () => {
                     <Plus size={18} />
                     Add New Store
                 </button>
-            </div>
+                </div>
+            {/* </div> */}
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

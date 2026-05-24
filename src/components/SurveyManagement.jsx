@@ -92,10 +92,10 @@ const moveQuestionDown = (surveyId, questionIndex, totalQuestions) => {
 
   return (
     <div className="space-y-6">
-      <div>
+      {/* <div>
         <h1 className="text-2xl font-bold text-gray-900">Survey Management</h1>
         <p className="text-gray-500 mt-1">Manage, monitor, and control your active surveys</p>
-      </div>
+      </div> */}
 
       {/* Filters */}
       <div className="card">

@@ -1,20 +1,31 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BarChart3, Mail, Lock, Building, Utensils } from 'lucide-react';
+import {
+  Mail,
+  Lock,
+  BarChart3,
+  BarChartBig,
+  AlignVerticalJustifyStartIcon,
+} from 'lucide-react';
+import { BarStack } from 'recharts';
 
 const Login = ({ setUser }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [brandId, setBrandId] = useState('');
   const [error, setError] = useState('');
+
   const navigate = useNavigate();
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (email && password && brandId) {
-      const user = { email, brandId };
+
+    if (email && password) {
+      const user = { email };
+
       localStorage.setItem('surveyUser', JSON.stringify(user));
+
       setUser(user);
+
       navigate('/dashboard');
     } else {
       setError('Please fill in all fields');
@@ -22,79 +33,98 @@ const Login = ({ setUser }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-100 flex items-center justify-center p-4">
-      <div className="max-w-md w-full">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-orange-600 rounded-2xl mb-4">
-            <Utensils className="w-8 h-8 text-white" />
-          </div>
-          <h2 className="text-3xl font-bold text-gray-900">SurveyDash</h2>
-          <p className="text-gray-600 mt-2">Customer Feedback Platform</p>
+    <div className="min-h-screen bg-[#fff7f2] flex items-center justify-center px-4 relative overflow-hidden">
+      {/* Background Glow */}
+      <div className="absolute top-[-120px] right-[-120px] w-[320px] h-[320px] bg-orange-200 rounded-full blur-3xl opacity-40" />
+
+      <div className="absolute bottom-[-120px] left-[-120px] w-[320px] h-[320px] bg-orange-200 rounded-full blur-3xl opacity-40" />
+
+      {/* Login Card */}
+      <div className="relative w-full max-w-md">
+        {/* Logo Section */}
+        <div className="flex flex-col items-center mb-8">
+          {/* <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-orange-500 to-amber-400 flex items-center justify-center shadow-xl shadow-orange-200 mb-5">
+            <AlignVerticalJustifyStartIcon className="w-10 h-10 text-white" />
+          </div> */}
+
+          <h1 className="text-4xl font-black tracking-tight">
+            <span className="text-gray-900">Loyal</span>
+
+            <span className="bg-gradient-to-r from-orange-500 to-amber-400 bg-clip-text text-transparent">
+              ytics
+            </span>
+          </h1>
+
+          <p className="text-sm text-gray-500 mt-2 font-medium">
+            Customer Intelligence Platform
+          </p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          <h3 className="text-xl font-semibold text-gray-900 mb-6">Admin Login</h3>
-          
+        {/* Form */}
+        <div className="bg-white/90 backdrop-blur-xl border border-orange-100 shadow-2xl rounded-3xl p-8">
+          <div className="mb-7">
+            <h2 className="text-2xl font-bold text-gray-900 text-center">
+              Welcome Back
+            </h2>
+
+            {/* <p className="text-sm text-gray-500 mt-1">
+              Sign in to access your dashboard
+            </p> */}
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-5">
-                 <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Brand ID
-              </label>
-              <div className="relative">
-                <Building className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  value={brandId}
-                  onChange={(e) => setBrandId(e.target.value)}
-                  className="input-field pl-10"
-                  placeholder="BRAND-12345"
-                  required
-                />
-              </div>
-            </div>
+            {/* Email */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Email Address
               </label>
+
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-orange-400" />
+
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="input-field pl-10"
-                  placeholder="admin@restaurant.com"
+                  placeholder="admin@loyalytics.com"
+                  className="w-full h-14 rounded-2xl border border-orange-100 bg-orange-50/40 pl-12 pr-4 text-sm outline-none focus:border-orange-400 focus:ring-4 focus:ring-orange-100 transition-all"
                   required
                 />
               </div>
             </div>
 
+            {/* Password */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Password
               </label>
+
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-orange-400" />
+
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="input-field pl-10"
                   placeholder="••••••••"
+                  className="w-full h-14 rounded-2xl border border-orange-100 bg-orange-50/40 pl-12 pr-4 text-sm outline-none focus:border-orange-400 focus:ring-4 focus:ring-orange-100 transition-all"
                   required
                 />
               </div>
             </div>
 
-       
-
+            {/* Error */}
             {error && (
-              <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">
+              <div className="bg-red-50 border border-red-100 text-red-500 text-sm rounded-2xl p-4">
                 {error}
               </div>
             )}
 
-            <button type="submit" className="btn-primary w-full bg-orange-600 hover:bg-orange-700">
+            {/* Button */}
+            <button
+              type="submit"
+              className="w-full h-14 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-400 text-white font-semibold shadow-lg shadow-orange-200 hover:opacity-90 transition-all"
+            >
               Sign In
             </button>
           </form>

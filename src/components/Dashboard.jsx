@@ -55,12 +55,14 @@ const Dashboard = () => {
   const totalSurveys = mockSurveys.length;
 
   return (
-    <div className="space-y-6">
+    <div className="bg-grey-50 space-y-6">
+
+      
       {/* Header */}
-      <div>
+      {/* <div>
         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
         <p className="text-gray-500 mt-1">Welcome back! Here's your NPS performance overview.</p>
-      </div>
+      </div> */}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

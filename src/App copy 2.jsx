@@ -7,9 +7,7 @@ import SurveyManagement from './components/SurveyManagement';
 import SurveyPreview from './components/SurveyPreview';
 import Reports from './components/Reports';
 import Stores from './components/Stores';
-import Brands from './components/Brands';
 import Layout from './components/Layout';
-import { BrandProvider } from './context/BrandContext';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -29,20 +27,17 @@ function App() {
           path="/*"
           element={
             user ? (
-              <BrandProvider>
-                <Layout user={user} setUser={setUser}>
-                  <Routes>
-                    <Route path="/" element={<Navigate to="/dashboard" />} />
-                    <Route path="/dashboard" element={<Dashboard />} />
-                    <Route path="/brands" element={<Brands />} />
-                    <Route path="/stores" element={<Stores />} />
-                    <Route path="/create-survey" element={<CreateSurvey />} />
-                    <Route path="/survey-management" element={<SurveyManagement />} />
-                    {/* <Route path="/survey-preview" element={<SurveyPreview />} /> */}
-                    <Route path="/reports" element={<Reports />} />
-                  </Routes>
-                </Layout>
-              </BrandProvider>
+              <Layout user={user} setUser={setUser}>
+                <Routes>
+                  <Route path="/" element={<Navigate to="/dashboard" />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/stores" element={<Stores />} />
+                  <Route path="/create-survey" element={<CreateSurvey />} />
+                  <Route path="/survey-management" element={<SurveyManagement />} />
+                  <Route path="/survey-preview" element={<SurveyPreview />} />
+                  <Route path="/reports" element={<Reports />} />
+                </Routes>
+              </Layout>
             ) : (
               <Navigate to="/login" replace />
             )

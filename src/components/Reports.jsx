@@ -83,10 +83,10 @@ const Reports = () => {
 
   return (
     <div className="space-y-6">
-      <div>
+      {/* <div>
         <h1 className="text-2xl font-bold text-gray-900">Reports & Analytics</h1>
         <p className="text-gray-500 mt-1">Generate and download detailed reports</p>
-      </div>
+      </div> */}
 
       {/* Report Configuration */}
       <div className="card">
