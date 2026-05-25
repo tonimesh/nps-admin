@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import api from '../services/apiService';
 import { Plus, Trash2, GripVertical, Copy, ChevronDown, ChevronUp, ArrowUp, ArrowDown, Eye } from 'lucide-react';
 import { mockSurveys } from '../utils/mockData';
 import { useBrand } from '../context/BrandContext';
@@ -6,6 +7,11 @@ import { useBrand } from '../context/BrandContext';
 const CreateSurvey = () => {
   const { selectedBrand } = useBrand();
   const [surveyName, setSurveyName] = useState('');
+  const [surveyCode, setSurveyCode] = useState('');
+  const [description, setDescription] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [loading, setLoading] = useState(false);
   const [header, setHeader] = useState('We value your feedback!');
   const [headerSubtext, setHeaderSubtext] = useState('Help us serve you better every day.');
   const [footer, setFooter] = useState('Your feedback is private • Better experience • Exclusive offers • We value your privacy');
@@ -58,7 +64,7 @@ const CreateSurvey = () => {
   };
 
   const updateQuestion = (id, field, value) => {
-    setQuestions(questions.map(q => 
+    setQuestions(questions.map(q =>
       q.id === id ? { ...q, [field]: value } : q
     ));
   };
@@ -97,9 +103,9 @@ const CreateSurvey = () => {
   const handleDrop = (e, dropIndex) => {
     e.preventDefault();
     const dragIndex = parseInt(e.dataTransfer.getData('text/plain'));
-    
+
     if (dragIndex === dropIndex) return;
-    
+
     const newQuestions = [...questions];
     const [draggedQuestion] = newQuestions.splice(dragIndex, 1);
     newQuestions.splice(dropIndex, 0, draggedQuestion);
@@ -152,32 +158,153 @@ const CreateSurvey = () => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!surveyName) {
-      alert('Please fill in survey name');
-      return;
+
+    try {
+      setLoading(true);
+
+      const surveyPayload = {
+        brandId: selectedBrand.id,
+        brandCode: selectedBrand.code,
+
+        surveyCode,
+
+        title: surveyName,
+
+        description,
+
+        startDate,
+
+        endDate,
+
+        status: 'DRAFT',
+
+        footer,
+
+        maxUsersLimitForSurvey: 10000,
+
+        questionsPerPage: 5,
+
+        introductionPage: {
+          isEnabled: true,
+          title: header,
+          description: headerSubtext,
+          buttonLabelName: 'Start Survey',
+        },
+
+        termsAndConditions: {
+          isEnabled: true,
+          description:
+            'Terms and Conditions',
+          enableSurveyOnlyAfterAcceptingTnC: true,
+        },
+
+        surveyEndConfigPage: {
+          isEnabled: true,
+          title: 'Thank You',
+          description:
+            'Thank you for your feedback',
+          buttonLabelName:
+            selectedBrand.name,
+          buttonLink:
+            'https://google.com',
+        },
+
+        customFields: [
+          {
+            fieldName: 'mobile_number',
+            labelName: 'Mobile Number',
+            placeholder:
+              'Enter mobile number',
+            type: 'text',
+            isRequired: true,
+          },
+          {
+            fieldName: 'invoice_number',
+            labelName: 'Invoice Number',
+            placeholder:
+              'Enter invoice number',
+            type: 'text',
+            isRequired: true,
+          },
+        ],
+      };
+
+      const surveyResponse =
+        await api.post(
+          '/survey-config',
+          surveyPayload
+        );
+
+      const surveyId =
+        surveyResponse.data.id;
+
+      const questionsPayload =
+        questions.map(
+          (question, index) => ({
+            questionText:
+              question.text,
+
+            questionType:
+              question.type === 'text'
+                ? 'TEXT'
+                : 'RATING',
+
+            displayOrder:
+              index + 1,
+
+            isRequired:
+              question.required,
+
+            status: 'ACTIVE',
+
+            ratingMin:
+              question.type === 'nps'
+                ? 0
+                : 1,
+
+            ratingMax:
+              question.type === 'nps'
+                ? 10
+                : 5,
+
+            enableComments: true,
+
+            requiredComments: false,
+
+            commentsPlaceholder:
+              'Tell us why you gave this score',
+
+            commentText:
+              'Reason for your rating',
+          })
+        );
+
+      await api.post(
+        `/survey-config/questions/${surveyId}`,
+        questionsPayload
+      );
+
+      alert(
+        'Survey Created Successfully'
+      );
+
+      setSurveyName('');
+      setSurveyCode('');
+      setDescription('');
+      setStartDate('');
+      setEndDate('');
+    } catch (error) {
+      console.log(error);
+
+      // alert(
+      //   error?.response?.data?.message ||
+      //   'Failed to create survey'
+      // );
+    } finally {
+      setLoading(false);
     }
-
-    const newSurvey = {
-      id: `survey${mockSurveys.length + 1}`,
-      name: surveyName,
-      brandId: selectedBrand.id,
-      brandName: selectedBrand.name,
-      status: 'draft',
-      createdAt: new Date().toISOString().split('T')[0],
-      responses: 0,
-      npsScore: null,
-      header: header,
-      headerSubtext: headerSubtext,
-      footer: footer,
-      questions: questions,
-    };
-
-    mockSurveys.push(newSurvey);
-    alert('Survey created successfully!');
-    
-    setSurveyName('');
   };
 
   return (
@@ -203,20 +330,94 @@ const CreateSurvey = () => {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Basic Info */}
             <div className="card">
-              <h3 className="font-semibold text-gray-900 mb-4">Basic Information</h3>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Survey Name</label>
-                <input
-                  type="text"
-                  value={surveyName}
-                  onChange={(e) => setSurveyName(e.target.value)}
-                  className="input-field"
-                  placeholder="e.g., Customer Experience Survey"
-                  required
-                />
+              <h3 className="font-semibold text-gray-900 mb-4">
+                Basic Information
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Survey Name
+                  </label>
+
+                  <input
+                    type="text"
+                    value={surveyName}
+                    onChange={(e) =>
+                      setSurveyName(e.target.value)
+                    }
+                    className="input-field"
+                    placeholder="Customer Experience Survey"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Survey Code
+                  </label>
+
+                  <input
+                    type="text"
+                    value={surveyCode}
+                    onChange={(e) =>
+                      setSurveyCode(e.target.value)
+                    }
+                    className="input-field"
+                    placeholder="Survey_NPS_001"
+                    required
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Description
+                  </label>
+
+                  <textarea
+                    value={description}
+                    onChange={(e) =>
+                      setDescription(e.target.value)
+                    }
+                    className="input-field"
+                    rows="3"
+                    placeholder="Please rate your experience"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Start Date
+                  </label>
+
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) =>
+                      setStartDate(e.target.value)
+                    }
+                    className="input-field"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    End Date
+                  </label>
+
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) =>
+                      setEndDate(e.target.value)
+                    }
+                    className="input-field"
+                    required
+                  />
+                </div>
               </div>
             </div>
-
             {/* Header & Footer */}
             <div className="card">
               <h3 className="font-semibold text-gray-900 mb-4">Header & Footer</h3>
@@ -273,9 +474,8 @@ const CreateSurvey = () => {
                     onDragOver={(e) => handleDragOver(e, index)}
                     onDragEnd={handleDragEnd}
                     onDrop={(e) => handleDrop(e, index)}
-                    className={`border rounded-lg overflow-hidden transition-all ${
-                      dragOverIndex === index ? 'border-orange-500 bg-orange-50' : 'border-gray-200'
-                    }`}
+                    className={`border rounded-lg overflow-hidden transition-all ${dragOverIndex === index ? 'border-orange-500 bg-orange-50' : 'border-gray-200'
+                      }`}
                   >
                     <div className="flex items-center justify-between p-3 bg-gray-50">
                       <div className="flex items-center gap-3">
@@ -328,7 +528,7 @@ const CreateSurvey = () => {
                         </button>
                       </div>
                     </div>
-                    
+
                     {expandedQuestion === question.id && (
                       <div className="p-3 space-y-3">
                         <input
@@ -375,7 +575,15 @@ const CreateSurvey = () => {
 
             <div className="flex justify-end gap-3">
               <button type="button" className="btn-secondary">Save as Draft</button>
-              <button type="submit" className="btn-primary">Create Survey</button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="btn-primary"
+              >
+                {loading
+                  ? 'Creating Survey...'
+                  : 'Create Survey'}
+              </button>
             </div>
           </form>
         </div>
@@ -388,7 +596,7 @@ const CreateSurvey = () => {
                 <h3 className="font-semibold text-gray-900">Live Preview</h3>
                 <span className="text-xs text-gray-500">Customer facing view</span>
               </div> */}
-              
+
               <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
                 {/* Header */}
                 <div className={`bg-gradient-to-r ${selectedBrand.id === 'kfc' ? 'from-red-600 to-red-700' : selectedBrand.id === 'pizza_hut' ? 'from-blue-600 to-blue-700' : 'from-purple-600 to-purple-700'} text-white p-6 text-center`}>

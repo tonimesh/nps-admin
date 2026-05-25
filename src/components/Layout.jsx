@@ -20,6 +20,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { useBrand } from '../context/BrandContext';
+import { useUser } from '../context/UserContext';
 
 const Layout = ({ children, user, setUser }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -31,6 +32,8 @@ const Layout = ({ children, user, setUser }) => {
 
   const { selectedBrand, userBrands, switchBrand } = useBrand();
 
+  const { logout } = useUser();
+
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Brands', href: '/brands', icon: Building },
@@ -41,11 +44,7 @@ const Layout = ({ children, user, setUser }) => {
     { name: 'Reports', href: '/reports', icon: FileText },
   ];
 
-  const handleLogout = () => {
-    localStorage.removeItem('surveyUser');
-    setUser(null);
-    navigate('/login');
-  };
+
 
   const getBrandColor = (brandId) => {
     switch (brandId) {
@@ -86,19 +85,19 @@ const Layout = ({ children, user, setUser }) => {
           <div className="px-6 py-5 border-b border-orange-100">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-400 flex items-center justify-center shadow-lg shadow-orange-200">
-                <span className="text-white text-xl font-black">L</span>
+                <span className="text-white text-xl font-black">N</span>
               </div>
 
               <div>
                 <h1 className="text-2xl font-black tracking-tight">
-                  <span className="text-gray-900">Loyal</span>
+                  <span className="text-gray-900">Net</span>
                   <span className="bg-gradient-to-r from-orange-500 to-amber-400 bg-clip-text text-transparent">
-                    ytics
+                    ly.
                   </span>
                 </h1>
 
                 <p className="text-xs text-gray-500 -mt-1">
-                  Customer Intelligence Platform
+                  Customer Intelligence Platform.
                 </p>
               </div>
             </div>
@@ -125,7 +124,7 @@ const Layout = ({ children, user, setUser }) => {
                     </div>
 
                     <div className="text-left">
-                      <h3 className="font-semibold text-sm leading-none">
+                      <h3 className="font-semibold text-md leading-none tracking-normal">
                         {selectedBrand.name}
                       </h3>
                       <p className="text-xs text-white/70 mt-0.5">
@@ -232,7 +231,7 @@ const Layout = ({ children, user, setUser }) => {
             </div> */}
 
             <button
-              onClick={handleLogout}
+              onClick={logout}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border border-red-100 text-red-500 hover:bg-red-50 transition-all font-medium"
             >
               <LogOut size={18} />
@@ -251,19 +250,23 @@ const Layout = ({ children, user, setUser }) => {
               {/* Left Section - Page Title & Brand Info */}
               <div className="flex items-center gap-4">
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-900">
+                    <span className="text-2xl font-bold text-orange-600">
+                        {selectedBrand.name}
+                     </span>
+
+             
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
+                    
+                  <h1 className="text-lg font-bold text-gray-900">
                     {getPageTitle()}
                   </h1>
-                  <div className="flex items-center gap-2 mt-1">
-                    <div className="flex items-center gap-1">
-                      <span className="text-sm font-medium text-orange-600">
-                        {selectedBrand.name}
-                      </span>
+                     
                     </div>
-                    <span className="text-gray-300">•</span>
+                    {/* <span className="text-gray-300">•</span>
                     <span className="text-xs text-gray-500">
                       Last updated: Today at 10:30 AM
-                    </span>
+                    </span> */}
                   </div>
                 </div>
               </div>
@@ -271,15 +274,15 @@ const Layout = ({ children, user, setUser }) => {
               {/* Right Section - Actions */}
               <div className="flex items-center gap-3">
                 {/* Notifications */}
-                <button className="relative p-2 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">
+                {/* <button className="relative p-2 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">
                   <Bell size={18} />
                   <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-                </button>
+                </button> */}
 
                 {/* Help */}
-                <button className="hidden md:flex p-2 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">
+                {/* <button className="hidden md:flex p-2 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">
                   <HelpCircle size={18} />
-                </button>
+                </button> */}
 
                 {/* User Menu */}
                 <div className="relative">
@@ -289,9 +292,10 @@ const Layout = ({ children, user, setUser }) => {
                   >
                     <div className="w-9 h-9 rounded-full bg-gradient-to-br from-orange-500 to-amber-400 flex items-center justify-center">
                       <span className="text-white text-sm font-semibold">
-                        {user?.email?.charAt(0).toUpperCase()}
+                        {user?.email?.charAt(0).toUpperCase()} 
                       </span>
                     </div>
+                    {/* <div>{user?.fullName}</div> */}
                     <ChevronDown size={14} className={`text-gray-400 transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} />
                   </button>
 
@@ -315,7 +319,7 @@ const Layout = ({ children, user, setUser }) => {
                         </div>
                         <div className="p-2 border-t border-gray-100">
                           <button
-                            onClick={handleLogout}
+                            onClick={logout}
                             className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-red-600 hover:bg-red-50 transition-colors text-sm"
                           >
                             <LogOut size={16} />
