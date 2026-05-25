@@ -84,29 +84,9 @@ const Brands = () => {
                             <div className="flex items-start justify-between">
                                 <div className="flex items-center gap-4">
                                     {/* Logo */}
-                                    {editingBrand === brand.id ? (
-                                        <div className="relative">
-                                            <select
-                                                value={tempLogo}
-                                                onChange={(e) => setTempLogo(e.target.value)}
-                                                className="w-20 h-20 rounded-2xl border border-orange-200 text-3xl text-center bg-orange-50 focus:outline-none"
-                                            >
-                                                {logoOptions.map((logo) => (
-                                                    <option key={logo} value={logo}>
-                                                        {logo}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                    ) : (
-                                        <div
-                                            className={`w-20 h-20 rounded-3xl bg-gradient-to-r ${getBrandGradient(
-                                                brand.id
-                                            )} flex items-center justify-center text-4xl shadow-lg`}
-                                        >
-                                            {brand.logo}
-                                        </div>
-                                    )}
+                                     {brand.logo ? (
+                                        <img src={`https://ayursinfotech.com${brand.logo}`} alt={brand.name} className="w-14 h-14 rounded-xl object-cover" />
+                                    ) : (  '🍔' )}
 
                                     {/* Brand Info */}
                                     <div>

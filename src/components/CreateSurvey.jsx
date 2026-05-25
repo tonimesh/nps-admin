@@ -600,7 +600,14 @@ const CreateSurvey = () => {
               <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
                 {/* Header */}
                 <div className={`bg-gradient-to-r ${selectedBrand.id === 'kfc' ? 'from-red-600 to-red-700' : selectedBrand.id === 'pizza_hut' ? 'from-blue-600 to-blue-700' : 'from-purple-600 to-purple-700'} text-white p-6 text-center`}>
-                  <span className="text-4xl mb-2">{selectedBrand.logo} {selectedBrand.name}</span>
+                  <span className="text-4xl mb-2 flex items-center justify-center"> 
+                      {selectedBrand.logo ? (
+                        <img src={`https://ayursinfotech.com${selectedBrand.logo}`} alt={selectedBrand.name} className="w-14 h-14 rounded-xl object-cover" />
+                      ) : (
+                        '🍔'
+                      )}
+                    {selectedBrand.name}
+                    </span>
 
                   <h2 className="text-xl font-bold">{header || 'We value your feedback!'}</h2>
                   <p className="text-sm opacity-90 mt-1">{headerSubtext || 'Help us serve you better'}</p>

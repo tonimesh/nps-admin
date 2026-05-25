@@ -120,7 +120,11 @@ const Layout = ({ children, user, setUser }) => {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="w-9 h-9 rounded-lg bg-white/20 backdrop-blur flex items-center justify-center text-lg">
-                      {selectedBrand.logo}
+                      {selectedBrand.logo ? (
+                        <img src={`https://ayursinfotech.com${selectedBrand.logo}`} alt={selectedBrand.name} />
+                      ) : (
+                        '🍔'
+                      )}
                     </div>
 
                     <div className="text-left">
@@ -167,7 +171,11 @@ const Layout = ({ children, user, setUser }) => {
                               brand.id
                             )} text-white`}
                           >
-                            {brand.logo}
+                            {brand.logo ? (
+                              <img src={`https://ayursinfotech.com${brand.logo}`} alt={brand.name} />
+                            ) : (
+                              '🍔'
+                            )}
                           </div>
 
                           <p className="font-medium text-sm text-gray-800">
@@ -250,13 +258,18 @@ const Layout = ({ children, user, setUser }) => {
               {/* Left Section - Page Title & Brand Info */}
               <div className="flex items-center gap-4">
                 <div>
-                    <span className="text-2xl font-bold text-orange-600">
-                        {selectedBrand.name}
-                     </span>
+            
+                  <span className="text-2xl font-bold text-orange-600 flex items-center">
+                          {selectedBrand.logo ? (
+                            <img src={`https://ayursinfotech.com${selectedBrand.logo}`} alt={selectedBrand.name} className="w-10 h-10 rounded-full object-cover" />
+                          ) : (
+                            '🍔'
+                          )}
+                    {selectedBrand.name}
+                  </span>
 
-             
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1">
+                  <div className="flex items-center ms-2">
+                    <div className="flex items-center">
                     
                   <h1 className="text-lg font-bold text-gray-900">
                     {getPageTitle()}

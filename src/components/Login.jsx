@@ -117,7 +117,7 @@ const Login = ({ setUser }) => {
           (brand) => ({
             id: brand.id,
             name: brand.brandName,
-            logo: '🍔',
+            logo: brand.logoPath,
             code: brand.brandCode,
             email: brand.contactEmail,
             phone: brand.contactNumber,
