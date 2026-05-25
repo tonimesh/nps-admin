@@ -1,14 +1,92 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Play, StopCircle, Edit, Plus, Trash2, Eye, MoreVertical, Search, Filter } from 'lucide-react';
-import { mockSurveys } from '../utils/mockData';
 
 const SurveyManagement = () => {
-  const [surveys, setSurveys] = useState(mockSurveys);
+  const [surveys, setSurveys] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedSurvey, setSelectedSurvey] = useState(null);
   const [showAddQuestion, setShowAddQuestion] = useState(false);
   const [newQuestion, setNewQuestion] = useState({ text: '', type: 'rating', required: false });
+
+  const [startDate, setStartDate] = useState('2026-01-01');
+  const [endDate, setEndDate] = useState('2026-12-31');
+
+  useEffect(() => {
+    const fetchSurveys = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const accessToken = localStorage.getItem('accessToken');
+        let brandId = '6a12879be520ac156456a3f1'; // Fallback just in case
+        
+        try {
+          const selectedBrandStr = localStorage.getItem('selectedBrand');
+          if (selectedBrandStr) {
+            const selectedBrand = JSON.parse(selectedBrandStr);
+            if (selectedBrand && selectedBrand.id) {
+              brandId = selectedBrand.id;
+            }
+          }
+        } catch (err) {
+          console.error("Error parsing selectedBrand from localStorage:", err);
+        }
+        
+        const response = await fetch(`https://adminnps.ayursinfotech.com/api/v1/survey/summary/${brandId}`, {
+          method: 'POST',
+          headers: {
+            'Authorization': accessToken || '',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            startDate: startDate,
+            endDate: endDate,
+            page: 0,
+            size: 10
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch survey summary data');
+        }
+
+        const data = await response.json();
+        
+        if (data && data.content) {
+          const mappedSurveys = data.content.map(item => {
+            let npsScore = 0;
+            if (item.totalUserSurveyed > 0) {
+              npsScore = Math.round(((item.promoterCount - item.detractorsCount) / item.totalUserSurveyed) * 100);
+            }
+            
+            return {
+              id: item.surveyId,
+              name: `Survey ${item.surveyId.substring(0, 8)}`,
+              storeName: 'N/A',
+              status: 'active',
+              createdAt: item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'N/A',
+              responses: item.totalUserSurveyed || 0,
+              npsScore: npsScore,
+              questionsLength: item.totalQuestions || 0,
+              questions: [] 
+            };
+          });
+          setSurveys(mappedSurveys);
+        } else {
+          setSurveys([]);
+        }
+      } catch (err) {
+        console.error('Error fetching surveys:', err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSurveys();
+  }, [startDate, endDate]);
 
   const toggleSurveyStatus = (surveyId) => {
     setSurveys(surveys.map(survey =>
@@ -24,8 +102,9 @@ const SurveyManagement = () => {
         survey.id === selectedSurvey.id
           ? {
               ...survey,
+              questionsLength: (survey.questionsLength || 0) + 1,
               questions: [
-                ...survey.questions,
+                ...(survey.questions || []),
                 {
                   id: Date.now().toString(),
                   text: newQuestion.text,
@@ -49,7 +128,7 @@ const SurveyManagement = () => {
 const moveQuestionUp = (surveyId, questionIndex) => {
   const survey = surveys.find(s => s.id === surveyId);
   if (questionIndex > 0) {
-    const newQuestions = [...survey.questions];
+    const newQuestions = [...(survey.questions || [])];
     [newQuestions[questionIndex], newQuestions[questionIndex - 1]] = 
       [newQuestions[questionIndex - 1], newQuestions[questionIndex]];
     
@@ -62,7 +141,7 @@ const moveQuestionUp = (surveyId, questionIndex) => {
 const moveQuestionDown = (surveyId, questionIndex, totalQuestions) => {
   const survey = surveys.find(s => s.id === surveyId);
   if (questionIndex < totalQuestions - 1) {
-    const newQuestions = [...survey.questions];
+    const newQuestions = [...(survey.questions || [])];
     [newQuestions[questionIndex], newQuestions[questionIndex + 1]] = 
       [newQuestions[questionIndex + 1], newQuestions[questionIndex]];
     
@@ -73,8 +152,10 @@ const moveQuestionDown = (surveyId, questionIndex, totalQuestions) => {
 };
 
   const filteredSurveys = surveys.filter(survey => {
-    const matchesSearch = survey.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         survey.storeName.toLowerCase().includes(searchTerm.toLowerCase());
+    const surveyName = survey.name || '';
+    const storeName = survey.storeName || '';
+    const matchesSearch = surveyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         storeName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || survey.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -99,8 +180,8 @@ const moveQuestionDown = (surveyId, questionIndex, totalQuestions) => {
 
       {/* Filters */}
       <div className="card">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1 relative">
+        <div className="flex flex-col sm:flex-row flex-wrap gap-4 items-center">
+          <div className="flex-1 min-w-[200px] relative w-full sm:w-auto">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
@@ -110,10 +191,31 @@ const moveQuestionDown = (surveyId, questionIndex, totalQuestions) => {
               className="input-field pl-10"
             />
           </div>
+          
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <span className="text-sm text-gray-500 font-medium whitespace-nowrap">From:</span>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="input-field"
+            />
+          </div>
+          
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <span className="text-sm text-gray-500 font-medium whitespace-nowrap">To:</span>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="input-field"
+            />
+          </div>
+
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="input-field w-40"
+            className="input-field w-full sm:w-40"
           >
             <option value="all">All Status</option>
             <option value="active">Active</option>
@@ -125,7 +227,25 @@ const moveQuestionDown = (surveyId, questionIndex, totalQuestions) => {
 
       {/* Surveys List */}
       <div className="space-y-4">
-        {filteredSurveys.map((survey) => (
+        {loading && (
+          <div className="flex justify-center p-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        )}
+        
+        {error && (
+          <div className="p-4 bg-red-50 text-red-600 rounded-lg border border-red-100">
+            {error}
+          </div>
+        )}
+
+        {!loading && !error && filteredSurveys.length === 0 && (
+          <div className="text-center p-8 text-gray-500">
+            No surveys found.
+          </div>
+        )}
+
+        {!loading && !error && filteredSurveys.map((survey) => (
           <div key={survey.id} className="card hover:shadow-md transition-shadow">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
               <div className="flex-1">
@@ -152,7 +272,7 @@ const moveQuestionDown = (surveyId, questionIndex, totalQuestions) => {
                   </div>
                 </div>
                 <div className="mt-3">
-                  <p className="text-sm text-gray-500">Questions: {survey.questions.length}</p>
+                  <p className="text-sm text-gray-500">Questions: {survey.questionsLength !== undefined ? survey.questionsLength : (survey.questions ? survey.questions.length : 0)}</p>
                 </div>
               </div>
               
