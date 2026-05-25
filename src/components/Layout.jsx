@@ -253,7 +253,7 @@ const Layout = ({ children, user, setUser }) => {
       <main className="lg:ml-72 min-h-screen">
         {/* Header */}
         <header className="sticky top-0 z-30 bg-white border-b border-orange-100">
-          <div className="px-6 py-3.5">
+          <div className="px-6 py-2.5">
             <div className="flex items-center justify-between">
               {/* Left Section - Page Title & Brand Info */}
               <div className="flex items-center gap-4">
