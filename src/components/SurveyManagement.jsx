@@ -11,10 +11,12 @@ import {
   Smartphone, 
   ExternalLink,
   CheckCircle2,
-  X
+  X,
+  HelpCircle
 } from 'lucide-react';
 import { useBrand } from '../context/BrandContext';
 import SurveyDetails from './SurveyDetails';
+import SurveyQuestionsModal from './SurveyQuestionsModal';
 
 const SurveyManagement = () => {
   const { selectedBrand } = useBrand();
@@ -30,6 +32,7 @@ const SurveyManagement = () => {
   const [selectedSurvey, setSelectedSurvey] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
   const [previewStep, setPreviewStep] = useState('intro'); // 'intro' or 'end'
+  const [showQuestions, setShowQuestions] = useState(false);
 
   const [showAddField, setShowAddField] = useState(false);
   const [newField, setNewField] = useState({ labelName: '', type: 'text', isRequired: false });
@@ -305,6 +308,16 @@ const SurveyManagement = () => {
                   <Eye size={14} />
                   Preview
                 </button>
+                <button
+                  onClick={() => {
+                    setSelectedSurvey(survey);
+                    setShowQuestions(true);
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 transition-all"
+                >
+                  <HelpCircle size={14} />
+                  Questions
+                </button>
               </div>
             </div>
 
@@ -384,6 +397,17 @@ const SurveyManagement = () => {
           previewLoading={previewLoading}
           previewError={previewError}
           onRetry={() => handlePreviewClick(selectedSurvey)}
+        />
+      )}
+
+      {/* Survey Questions Modal */}
+      {showQuestions && selectedSurvey && (
+        <SurveyQuestionsModal 
+          survey={selectedSurvey} 
+          onClose={() => {
+            setShowQuestions(false);
+            setSelectedSurvey(null);
+          }}
         />
       )}
 
