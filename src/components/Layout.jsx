@@ -76,9 +76,8 @@ const Layout = ({ children, user, setUser }) => {
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 z-40 h-screen w-72 bg-white border-r border-orange-100 transform transition-transform duration-300 ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        } lg:translate-x-0`}
+        className={`fixed top-0 left-0 z-40 h-screen w-72 bg-white border-r border-orange-100 transform transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          } lg:translate-x-0`}
       >
         <div className="flex flex-col h-full">
           {/* Brand Logo */}
@@ -106,7 +105,7 @@ const Layout = ({ children, user, setUser }) => {
           {/* Brand Switcher */}
           <div className="px-4 py-4 border-b border-orange-100">
             <p className="text-[10px] font-bold tracking-wider text-gray-400  uppercase mb-2">
-              Active Brands 
+              Active Brands
             </p>
 
             <div className="relative">
@@ -139,9 +138,8 @@ const Layout = ({ children, user, setUser }) => {
 
                   <ChevronDown
                     size={16}
-                    className={`transition-transform ${
-                      brandOpen ? 'rotate-180' : ''
-                    }`}
+                    className={`transition-transform ${brandOpen ? 'rotate-180' : ''
+                      }`}
                   />
                 </div>
               </button>
@@ -159,11 +157,10 @@ const Layout = ({ children, user, setUser }) => {
                           switchBrand(brand);
                           setBrandOpen(false);
                         }}
-                        className={`w-full flex items-center justify-between px-3 py-2.5 transition-all ${
-                          active
+                        className={`w-full flex items-center justify-between px-3 py-2.5 transition-all ${active
                             ? 'bg-orange-50'
                             : 'hover:bg-orange-50/50'
-                        }`}
+                          }`}
                       >
                         <div className="flex items-center gap-2">
                           <div
@@ -206,20 +203,18 @@ const Layout = ({ children, user, setUser }) => {
                   key={item.name}
                   to={item.href}
                   onClick={() => setSidebarOpen(false)}
-                  className={`group flex items-center justify-between px-4 py-3 rounded-2xl transition-all duration-200 ${
-                    isActive
+                  className={`group flex items-center justify-between px-4 py-3 rounded-2xl transition-all duration-200 ${isActive
                       ? 'bg-gradient-to-r from-orange-500 to-amber-400 text-white shadow-md'
                       : 'text-gray-700 hover:bg-orange-50'
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center gap-3">
                     <item.icon
                       size={19}
-                      className={`${
-                        isActive
+                      className={`${isActive
                           ? 'text-white'
                           : 'text-gray-500 group-hover:text-orange-500'
-                      }`}
+                        }`}
                     />
                     <span className="font-medium text-sm">{item.name}</span>
                   </div>
@@ -239,7 +234,11 @@ const Layout = ({ children, user, setUser }) => {
             </div> */}
 
             <button
-              onClick={logout}
+              onClick={() => {
+                logout()
+                navigate('/');
+
+              }}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border border-red-100 text-red-500 hover:bg-red-50 transition-all font-medium"
             >
               <LogOut size={18} />
@@ -253,28 +252,28 @@ const Layout = ({ children, user, setUser }) => {
       <main className="lg:ml-72 min-h-screen">
         {/* Header */}
         <header className="sticky top-0 z-30 bg-white border-b border-orange-100">
-          <div className="px-6 py-3.5">
+          <div className="px-6 py-2.5">
             <div className="flex items-center justify-between">
               {/* Left Section - Page Title & Brand Info */}
               <div className="flex items-center gap-4">
                 <div>
-            
+
                   <span className="text-2xl font-bold text-orange-600 flex items-center">
-                          {selectedBrand.logo ? (
-                            <img src={`https://ayursinfotech.com${selectedBrand.logo}`} alt={selectedBrand.name} className="w-10 h-10 rounded-full object-cover" />
-                          ) : (
-                            '🍔'
-                          )}
+                    {selectedBrand.logo ? (
+                      <img src={`https://ayursinfotech.com${selectedBrand.logo}`} alt={selectedBrand.name} className="w-10 h-10 rounded-full object-cover" />
+                    ) : (
+                      '🍔'
+                    )}
                     {selectedBrand.name}
                   </span>
 
                   <div className="flex items-center ms-2">
                     <div className="flex items-center">
-                    
-                  <h1 className="text-lg font-bold text-gray-900">
-                    {getPageTitle()}
-                  </h1>
-                     
+
+                      <h1 className="text-lg font-bold text-gray-900">
+                        {getPageTitle()}
+                      </h1>
+
                     </div>
                     {/* <span className="text-gray-300">•</span>
                     <span className="text-xs text-gray-500">
@@ -305,7 +304,7 @@ const Layout = ({ children, user, setUser }) => {
                   >
                     <div className="w-9 h-9 rounded-full bg-gradient-to-br from-orange-500 to-amber-400 flex items-center justify-center">
                       <span className="text-white text-sm font-semibold">
-                        {user?.email?.charAt(0).toUpperCase()} 
+                        {user?.email?.charAt(0).toUpperCase()}
                       </span>
                     </div>
                     {/* <div>{user?.fullName}</div> */}
@@ -332,7 +331,11 @@ const Layout = ({ children, user, setUser }) => {
                         </div>
                         <div className="p-2 border-t border-gray-100">
                           <button
-                            onClick={logout}
+                            onClick={() => {
+                              logout()
+                              navigate('/');
+
+                            }}
                             className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-red-600 hover:bg-red-50 transition-colors text-sm"
                           >
                             <LogOut size={16} />
@@ -353,10 +356,10 @@ const Layout = ({ children, user, setUser }) => {
           {children}
         </div> */}
         <div className="min-h-screen bg-gradient-to-br from-[#f4f5f7] via-[#f8f9fb] to-[#eef1f5]">
-  <div className="p-4 lg:p-6">
-    {children}
-  </div>
-</div>
+          <div className="p-4 lg:p-6">
+            {children}
+          </div>
+        </div>
       </main>
     </div>
   );
