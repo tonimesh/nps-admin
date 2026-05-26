@@ -1,18 +1,42 @@
 import React, { useState, useEffect } from 'react';
-import { Play, StopCircle, Edit, Plus, Trash2, Eye, MoreVertical, Search, Filter } from 'lucide-react';
+import { 
+  Play, 
+  StopCircle, 
+  Plus, 
+  Trash2, 
+  Eye, 
+  Search, 
+  Calendar, 
+  Info, 
+  Smartphone, 
+  ExternalLink,
+  CheckCircle2,
+  X
+} from 'lucide-react';
+import { useBrand } from '../context/BrandContext';
+import SurveyDetails from './SurveyDetails';
 
 const SurveyManagement = () => {
+  const { selectedBrand } = useBrand();
   const [surveys, setSurveys] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [selectedSurvey, setSelectedSurvey] = useState(null);
-  const [showAddQuestion, setShowAddQuestion] = useState(false);
-  const [newQuestion, setNewQuestion] = useState({ text: '', type: 'rating', required: false });
 
-  const [startDate, setStartDate] = useState('2026-01-01');
-  const [endDate, setEndDate] = useState('2026-12-31');
+  const [startDate, setStartDate] = useState('2026-05-01');
+  const [endDate, setEndDate] = useState('2026-06-30');
+
+  const [selectedSurvey, setSelectedSurvey] = useState(null);
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewStep, setPreviewStep] = useState('intro'); // 'intro' or 'end'
+
+  const [showAddField, setShowAddField] = useState(false);
+  const [newField, setNewField] = useState({ labelName: '', type: 'text', isRequired: false });
+
+  const [mockAcceptedTnC, setMockAcceptedTnC] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState(null);
 
   useEffect(() => {
     const fetchSurveys = async () => {
@@ -20,60 +44,24 @@ const SurveyManagement = () => {
         setLoading(true);
         setError(null);
         const accessToken = localStorage.getItem('accessToken');
-        let brandId = '6a12879be520ac156456a3f1'; // Fallback just in case
+        const brandCode = selectedBrand?.code || 'PIZZ-0001';
         
-        try {
-          const selectedBrandStr = localStorage.getItem('selectedBrand');
-          if (selectedBrandStr) {
-            const selectedBrand = JSON.parse(selectedBrandStr);
-            if (selectedBrand && selectedBrand.id) {
-              brandId = selectedBrand.id;
-            }
-          }
-        } catch (err) {
-          console.error("Error parsing selectedBrand from localStorage:", err);
-        }
-        
-        const response = await fetch(`https://adminnps.ayursinfotech.com/api/v1/survey/summary/${brandId}`, {
-          method: 'POST',
+        const response = await fetch(`https://adminnps.ayursinfotech.com/api/survey-config/brand/${brandCode}?page=0&size=50`, {
+          method: 'GET',
           headers: {
             'Authorization': accessToken || '',
             'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            startDate: startDate,
-            endDate: endDate,
-            page: 0,
-            size: 10
-          })
+          }
         });
 
         if (!response.ok) {
-          throw new Error('Failed to fetch survey summary data');
+          throw new Error('Failed to fetch survey configurations');
         }
 
         const data = await response.json();
         
         if (data && data.content) {
-          const mappedSurveys = data.content.map(item => {
-            let npsScore = 0;
-            if (item.totalUserSurveyed > 0) {
-              npsScore = Math.round(((item.promoterCount - item.detractorsCount) / item.totalUserSurveyed) * 100);
-            }
-            
-            return {
-              id: item.surveyId,
-              name: `Survey ${item.surveyId.substring(0, 8)}`,
-              storeName: 'N/A',
-              status: 'active',
-              createdAt: item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'N/A',
-              responses: item.totalUserSurveyed || 0,
-              npsScore: npsScore,
-              questionsLength: item.totalQuestions || 0,
-              questions: [] 
-            };
-          });
-          setSurveys(mappedSurveys);
+          setSurveys(data.content);
         } else {
           setSurveys([]);
         }
@@ -86,109 +74,138 @@ const SurveyManagement = () => {
     };
 
     fetchSurveys();
-  }, [startDate, endDate]);
+  }, [selectedBrand]);
 
   const toggleSurveyStatus = (surveyId) => {
     setSurveys(surveys.map(survey =>
       survey.id === surveyId
-        ? { ...survey, status: survey.status === 'active' ? 'paused' : 'active' }
+        ? { ...survey, status: survey.status === 'ACTIVE' ? 'DRAFT' : 'ACTIVE' }
         : survey
     ));
   };
 
-  const addQuestionToSurvey = () => {
-    if (selectedSurvey && newQuestion.text) {
+  const handlePreviewClick = async (survey) => {
+    setSelectedSurvey(survey); // Quick visual fallback
+    setPreviewStep('intro');
+    setShowPreview(true);
+    setPreviewLoading(true);
+    setPreviewError(null);
+
+    try {
+      const accessToken = localStorage.getItem('accessToken');
+      const brandCode = selectedBrand?.code || survey.brandCode || 'PIZZ-0001';
+      
+      const response = await fetch(`https://adminnps.ayursinfotech.com/api/survey-config/${brandCode}/${survey.id}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': accessToken || '',
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch detailed survey configurations');
+      }
+
+      const data = await response.json();
+      setSelectedSurvey(data);
+    } catch (err) {
+      console.error('Error fetching survey details:', err);
+      setPreviewError(err.message);
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const addFieldToSurvey = () => {
+    if (selectedSurvey && newField.labelName) {
+      const fieldName = newField.labelName.toLowerCase().trim().replace(/[^a-z0-9]+/g, '_');
       const updatedSurveys = surveys.map(survey =>
         survey.id === selectedSurvey.id
           ? {
               ...survey,
-              questionsLength: (survey.questionsLength || 0) + 1,
-              questions: [
-                ...(survey.questions || []),
+              customFields: [
+                ...(survey.customFields || []),
                 {
-                  id: Date.now().toString(),
-                  text: newQuestion.text,
-                  type: newQuestion.type,
-                  required: newQuestion.required,
-                  options: newQuestion.type === 'rating' ? ['Very Bad', 'Bad', 'Average', 'Good', 'Excellent'] : undefined,
+                  fieldName,
+                  labelName: newField.labelName,
+                  placeholder: `Enter ${newField.labelName.toLowerCase()}`,
+                  type: newField.type,
+                  isRequired: newField.isRequired
                 }
               ]
             }
           : survey
       );
       setSurveys(updatedSurveys);
-      setNewQuestion({ text: '', type: 'rating', required: false });
-      setShowAddQuestion(false);
-      alert('Question added successfully!');
+      
+      const currentSelected = updatedSurveys.find(s => s.id === selectedSurvey.id);
+      setSelectedSurvey(currentSelected);
+      
+      setNewField({ labelName: '', type: 'text', isRequired: false });
+      setShowAddField(false);
     }
   };
 
-
-  // Add these functions to the SurveyManagement component
-const moveQuestionUp = (surveyId, questionIndex) => {
-  const survey = surveys.find(s => s.id === surveyId);
-  if (questionIndex > 0) {
-    const newQuestions = [...(survey.questions || [])];
-    [newQuestions[questionIndex], newQuestions[questionIndex - 1]] = 
-      [newQuestions[questionIndex - 1], newQuestions[questionIndex]];
-    
-    setSurveys(surveys.map(s => 
-      s.id === surveyId ? { ...s, questions: newQuestions } : s
-    ));
-  }
-};
-
-const moveQuestionDown = (surveyId, questionIndex, totalQuestions) => {
-  const survey = surveys.find(s => s.id === surveyId);
-  if (questionIndex < totalQuestions - 1) {
-    const newQuestions = [...(survey.questions || [])];
-    [newQuestions[questionIndex], newQuestions[questionIndex + 1]] = 
-      [newQuestions[questionIndex + 1], newQuestions[questionIndex]];
-    
-    setSurveys(surveys.map(s => 
-      s.id === surveyId ? { ...s, questions: newQuestions } : s
-    ));
-  }
-};
+  const deleteFieldFromSurvey = (surveyId, fieldName) => {
+    const updatedSurveys = surveys.map(survey =>
+      survey.id === surveyId
+        ? {
+            ...survey,
+            customFields: (survey.customFields || []).filter(f => f.fieldName !== fieldName)
+          }
+        : survey
+    );
+    setSurveys(updatedSurveys);
+    const currentSelected = updatedSurveys.find(s => s.id === surveyId);
+    setSelectedSurvey(currentSelected);
+  };
 
   const filteredSurveys = surveys.filter(survey => {
-    const surveyName = survey.name || '';
-    const storeName = survey.storeName || '';
-    const matchesSearch = surveyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         storeName.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || survey.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const title = survey.title || '';
+    const code = survey.surveyCode || '';
+    const description = survey.description || '';
+    const matchesSearch = title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          description.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = statusFilter === 'all' || survey.status?.toUpperCase() === statusFilter.toUpperCase();
+    
+    let matchesDate = true;
+    if (startDate) {
+      matchesDate = matchesDate && (survey.startDate >= startDate);
+    }
+    if (endDate) {
+      matchesDate = matchesDate && (survey.endDate <= endDate);
+    }
+    
+    return matchesSearch && matchesStatus && matchesDate;
   });
 
   const getStatusBadge = (status) => {
-    switch(status) {
-      case 'active':
-        return <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700">Active</span>;
-      case 'paused':
-        return <span className="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-700">Paused</span>;
+    switch(status?.toUpperCase()) {
+      case 'ACTIVE':
+        return <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">Active</span>;
+      case 'DRAFT':
+        return <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-amber-100 text-amber-800 border border-amber-200">Draft</span>;
       default:
-        return <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-700">Draft</span>;
+        return <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-slate-100 text-slate-800 border border-slate-200">{status || 'Draft'}</span>;
     }
   };
 
   return (
     <div className="space-y-6">
-      {/* <div>
-        <h1 className="text-2xl font-bold text-gray-900">Survey Management</h1>
-        <p className="text-gray-500 mt-1">Manage, monitor, and control your active surveys</p>
-      </div> */}
-
       {/* Filters */}
-      <div className="card">
+      <div className="card bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
         <div className="flex flex-col sm:flex-row flex-wrap gap-4 items-center">
           <div className="flex-1 min-w-[200px] relative w-full sm:w-auto">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
-              placeholder="Search surveys..."
+              placeholder="Search by title, code or description..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="input-field pl-10"
+              className="input-field pl-10 w-full"
             />
           </div>
           
@@ -219,7 +236,6 @@ const moveQuestionDown = (surveyId, questionIndex, totalQuestions) => {
           >
             <option value="all">All Status</option>
             <option value="active">Active</option>
-            <option value="paused">Paused</option>
             <option value="draft">Draft</option>
           </select>
         </div>
@@ -228,145 +244,211 @@ const moveQuestionDown = (surveyId, questionIndex, totalQuestions) => {
       {/* Surveys List */}
       <div className="space-y-4">
         {loading && (
-          <div className="flex justify-center p-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <div className="flex justify-center p-12">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
           </div>
         )}
         
         {error && (
-          <div className="p-4 bg-red-50 text-red-600 rounded-lg border border-red-100">
-            {error}
+          <div className="p-4 bg-red-50 text-red-600 rounded-xl border border-red-100 flex items-center gap-3">
+            <Info className="flex-shrink-0" />
+            <span className="font-medium">{error}</span>
           </div>
         )}
 
         {!loading && !error && filteredSurveys.length === 0 && (
-          <div className="text-center p-8 text-gray-500">
-            No surveys found.
+          <div className="text-center py-12 bg-white rounded-xl border border-gray-100 text-gray-400 shadow-sm">
+            <Info className="mx-auto mb-2 text-gray-300" size={36} />
+            <p className="font-medium text-sm">No survey configurations found matching filters.</p>
           </div>
         )}
 
         {!loading && !error && filteredSurveys.map((survey) => (
-          <div key={survey.id} className="card hover:shadow-md transition-shadow">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
-                  <h3 className="font-semibold text-lg text-gray-900">{survey.name}</h3>
+          <div key={survey.id} className="card hover:shadow-lg transition-all duration-300 border border-gray-100 hover:border-blue-100 bg-white p-6 rounded-xl space-y-4 shadow-sm">
+            {/* Header section */}
+            <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4 border-b border-gray-50 pb-4">
+              <div className="space-y-1.5 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="font-bold text-lg text-gray-900 leading-tight">{survey.title}</h3>
+                  <span className="px-2 py-0.5 text-xs font-mono font-medium rounded bg-blue-50 text-blue-700 border border-blue-100">{survey.surveyCode}</span>
                   {getStatusBadge(survey.status)}
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div>
-                    <p className="text-gray-500">Store</p>
-                    <p className="font-medium text-gray-900">{survey.storeName}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-500">Created</p>
-                    <p className="font-medium text-gray-900">{survey.createdAt}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-500">Responses</p>
-                    <p className="font-medium text-gray-900">{survey.responses}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-500">NPS Score</p>
-                    <p className="font-medium text-gray-900">{survey.npsScore || '—'}</p>
-                  </div>
-                </div>
-                <div className="mt-3">
-                  <p className="text-sm text-gray-500">Questions: {survey.questionsLength !== undefined ? survey.questionsLength : (survey.questions ? survey.questions.length : 0)}</p>
-                </div>
+                <p className="text-sm text-gray-500 leading-relaxed max-w-3xl">{survey.description || 'No description provided.'}</p>
               </div>
               
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 lg:self-start">
                 <button
                   onClick={() => toggleSurveyStatus(survey.id)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
-                    survey.status === 'active'
-                      ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
-                      : 'bg-green-100 text-green-700 hover:bg-green-200'
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    survey.status === 'ACTIVE'
+                      ? 'bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200'
+                      : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
                   }`}
                 >
-                  {survey.status === 'active' ? <StopCircle size={16} /> : <Play size={16} />}
-                  {survey.status === 'active' ? 'Stop' : 'Start'}
+                  {survey.status === 'ACTIVE' ? <StopCircle size={14} /> : <Play size={14} />}
+                  {survey.status === 'ACTIVE' ? 'Pause' : 'Activate'}
                 </button>
                 <button
                   onClick={() => {
                     setSelectedSurvey(survey);
-                    setShowAddQuestion(true);
+                    setShowAddField(true);
                   }}
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-100 text-blue-700 hover:bg-blue-200"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition-all"
                 >
-                  <Plus size={16} />
-                  Add Question
+                  <Plus size={14} />
+                  Add Field
                 </button>
-                <button className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200">
-                  <Edit size={16} />
-                  Edit
-                </button>
-                <button className="flex items-center gap-2 px-3 py-2 rounded-lg bg-purple-100 text-purple-700 hover:bg-purple-200">
-                  <Eye size={16} />
+                <button
+                  onClick={() => handlePreviewClick(survey)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 transition-all"
+                >
+                  <Eye size={14} />
                   Preview
                 </button>
               </div>
             </div>
+
+            {/* Core configuration metadata */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+              <div className="p-3 bg-gray-50 rounded-lg">
+                <p className="text-gray-400 font-medium mb-0.5">Brand Code</p>
+                <p className="font-bold text-gray-800 font-mono text-[13px]">{survey.brandCode || 'N/A'}</p>
+              </div>
+              <div className="p-3 bg-gray-50 rounded-lg">
+                <p className="text-gray-400 font-medium mb-0.5">Questions Limit</p>
+                <p className="font-bold text-gray-800 text-[13px]">{survey.questionsPerPage || 0} Per Page</p>
+              </div>
+              <div className="p-3 bg-gray-50 rounded-lg col-span-2 sm:col-span-1">
+                <p className="text-gray-400 font-medium mb-0.5">Max Target Users</p>
+                <p className="font-bold text-gray-800 text-[13px]">{survey.maxUsersLimitForSurvey?.toLocaleString() || 'Unlimited'}</p>
+              </div>
+              <div className="p-3 bg-gray-50 rounded-lg col-span-2 sm:col-span-1">
+                <p className="text-gray-400 font-medium mb-0.5">Duration</p>
+                <div className="flex items-center gap-1.5 font-bold text-gray-855 text-[12px] mt-0.5">
+                  <Calendar size={13} className="text-gray-400" />
+                  <span>{survey.startDate} ~ {survey.endDate}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Enabled modules checklist */}
+            <div className="flex flex-wrap gap-2 text-[11px]">
+              <div className={`px-2.5 py-1 rounded-full border flex items-center gap-1 font-medium ${survey.introductionPage?.isEnabled ? 'bg-emerald-50 border-emerald-100 text-emerald-800' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
+                <div className={`w-1.5 h-1.5 rounded-full ${survey.introductionPage?.isEnabled ? 'bg-emerald-500' : 'bg-gray-300'}`}></div>
+                Intro Screen: <span className="font-bold">{survey.introductionPage?.isEnabled ? 'Enabled' : 'Disabled'}</span>
+              </div>
+              <div className={`px-2.5 py-1 rounded-full border flex items-center gap-1 font-medium ${survey.termsAndConditions?.isEnabled ? 'bg-emerald-50 border-emerald-100 text-emerald-800' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
+                <div className={`w-1.5 h-1.5 rounded-full ${survey.termsAndConditions?.isEnabled ? 'bg-emerald-500' : 'bg-gray-300'}`}></div>
+                T&C Screen: <span className="font-bold">{survey.termsAndConditions?.isEnabled ? 'Enabled' : 'Disabled'}</span>
+              </div>
+              <div className={`px-2.5 py-1 rounded-full border flex items-center gap-1 font-medium ${survey.surveyEndConfigPage?.isEnabled ? 'bg-emerald-50 border-emerald-100 text-emerald-800' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
+                <div className={`w-1.5 h-1.5 rounded-full ${survey.surveyEndConfigPage?.isEnabled ? 'bg-emerald-500' : 'bg-gray-300'}`}></div>
+                End Screen: <span className="font-bold">{survey.surveyEndConfigPage?.isEnabled ? 'Enabled' : 'Disabled'}</span>
+              </div>
+            </div>
+
+            {/* Custom fields configured */}
+            {survey.customFields && survey.customFields.length > 0 && (
+              <div className="pt-2">
+                <p className="text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wider">Collected Customer Fields:</p>
+                <div className="flex flex-wrap gap-2">
+                  {survey.customFields.map((field, idx) => (
+                    <span key={idx} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 shadow-3xs">
+                      <span className="font-mono text-slate-400 text-[10px] uppercase">[{field.type}]</span>
+                      <span>{field.labelName}</span>
+                      {field.isRequired && <span className="text-red-500 font-bold text-sm leading-none">*</span>}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {survey.footer && (
+              <div className="text-[11px] text-gray-400 font-medium italic pt-2 border-t border-gray-55 flex items-center gap-1.5">
+                <Info size={12} className="text-gray-300" />
+                <span>Footer: {survey.footer}</span>
+              </div>
+            )}
           </div>
         ))}
       </div>
 
-      {/* Add Question Modal */}
-      {showAddQuestion && selectedSurvey && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-6">
-            <h3 className="text-lg font-semibold mb-4">Add Question to "{selectedSurvey.name}"</h3>
+      {/* Dynamic Survey Config Details Modal */}
+      {showPreview && selectedSurvey && (
+        <SurveyDetails 
+          survey={selectedSurvey} 
+          onClose={() => {
+            setShowPreview(false);
+            setSelectedSurvey(null);
+          }}
+          previewLoading={previewLoading}
+          previewError={previewError}
+          onRetry={() => handlePreviewClick(selectedSurvey)}
+        />
+      )}
+
+      {/* Add Custom Field Modal */}
+      {showAddField && selectedSurvey && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-55 p-4 animate-fadeIn">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-gray-150">
+            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <Plus className="text-blue-600" size={20} />
+              <span>Add Custom Field</span>
+            </h3>
             
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Question Text</label>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Field Label Name</label>
                 <input
                   type="text"
-                  value={newQuestion.text}
-                  onChange={(e) => setNewQuestion({ ...newQuestion, text: e.target.value })}
+                  value={newField.labelName}
+                  onChange={(e) => setNewField({ ...newField, labelName: e.target.value })}
                   className="input-field"
-                  placeholder="Enter your question..."
+                  placeholder="e.g. Invoice Number"
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Question Type</label>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Input Type</label>
                 <select
-                  value={newQuestion.type}
-                  onChange={(e) => setNewQuestion({ ...newQuestion, type: e.target.value })}
+                  value={newField.type}
+                  onChange={(e) => setNewField({ ...newField, type: e.target.value })}
                   className="input-field"
                 >
-                  <option value="rating">Rating Scale</option>
-                  <option value="nps">NPS Scale</option>
-                  <option value="text">Text Input</option>
-                  <option value="multiple_choice">Multiple Choice</option>
+                  <option value="text">Single Line Text</option>
+                  <option value="email">Email Address</option>
+                  <option value="tel">Telephone / Mobile</option>
+                  <option value="number">Numeric Input</option>
                 </select>
               </div>
               
-              <label className="flex items-center gap-2">
+              <label className="flex items-center gap-2.5 cursor-pointer select-none">
                 <input
                   type="checkbox"
-                  checked={newQuestion.required}
-                  onChange={(e) => setNewQuestion({ ...newQuestion, required: e.target.checked })}
-                  className="rounded"
+                  checked={newField.isRequired}
+                  onChange={(e) => setNewField({ ...newField, isRequired: e.target.checked })}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
                 />
-                <span className="text-sm text-gray-700">Required question</span>
+                <span className="text-sm text-gray-700 font-medium">This field is mandatory (Required)</span>
               </label>
             </div>
             
-            <div className="flex justify-end gap-3 mt-6">
+            <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-55">
               <button
-                onClick={() => setShowAddQuestion(false)}
-                className="btn-secondary"
+                onClick={() => {
+                  setShowAddField(false);
+                  setNewField({ labelName: '', type: 'text', isRequired: false });
+                }}
+                className="px-4 py-2 text-xs font-bold text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
               >
                 Cancel
               </button>
               <button
-                onClick={addQuestionToSurvey}
-                className="btn-primary"
+                onClick={addFieldToSurvey}
+                className="px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-md transition-colors"
+                disabled={!newField.labelName.trim()}
               >
-                Add Question
+                Create Field
               </button>
             </div>
           </div>
