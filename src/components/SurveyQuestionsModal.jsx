@@ -8,7 +8,8 @@ import {
   RefreshCw,
   Layers,
   ChevronRight,
-  ClipboardList
+  ClipboardList,
+  Trash2
 } from 'lucide-react';
 
 const SurveyQuestionsModal = ({ survey, onClose }) => {
@@ -16,6 +17,61 @@ const SurveyQuestionsModal = ({ survey, onClose }) => {
   const [surveyMetadata, setSurveyMetadata] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Question deletion state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [questionToDelete, setQuestionToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState(null);
+  const [deleteSuccess, setDeleteSuccess] = useState(null);
+
+  const handleDeleteClick = (question) => {
+    setQuestionToDelete(question);
+    setShowDeleteConfirm(true);
+    setDeleteError(null);
+    setDeleteSuccess(null);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!survey?.id || !questionToDelete?.questionId) return;
+
+    try {
+      setDeleting(true);
+      setDeleteError(null);
+      const accessToken = localStorage.getItem('accessToken');
+
+      const response = await fetch(`https://adminnps.ayursinfotech.com/api/survey-config/questions/${survey.id}/${questionToDelete.questionId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': accessToken || '',
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to delete question (Status: ${response.status})`);
+      }
+
+      const resData = await response.json();
+      
+      // Update local state by filtering out the deleted question
+      setQuestions(prev => prev.filter(q => q.questionId !== questionToDelete.questionId));
+      setDeleteSuccess(resData.message || "Question deleted successfully!");
+      
+      // Auto close confirmation popup after 1.5 seconds
+      setTimeout(() => {
+        setShowDeleteConfirm(false);
+        setQuestionToDelete(null);
+        setDeleteSuccess(null);
+      }, 1500);
+
+    } catch (err) {
+      console.error('Error deleting question:', err);
+      setDeleteError(err.message || 'Failed to delete question');
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const fetchQuestions = async () => {
     if (!survey?.id) return;
@@ -214,6 +270,13 @@ const SurveyQuestionsModal = ({ survey, onClose }) => {
                               Optional
                             </span>
                           )}
+                          <button
+                            onClick={() => handleDeleteClick(question)}
+                            className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 border border-transparent hover:border-rose-100 transition-all duration-200 ml-1"
+                            title="Delete Question"
+                          >
+                            <Trash2 size={13} />
+                          </button>
                         </div>
                       </div>
 
@@ -305,6 +368,89 @@ const SurveyQuestionsModal = ({ survey, onClose }) => {
         </div>
 
       </div>
+
+      {/* Question Deletion Confirmation Modal */}
+      {showDeleteConfirm && questionToDelete && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center z-55 p-4 animate-fadeIn">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-rose-100/50 space-y-4">
+            
+            {/* Success state */}
+            {deleteSuccess ? (
+              <div className="text-center py-6 space-y-3">
+                <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto border border-emerald-100 animate-bounce">
+                  <CheckCircle size={24} />
+                </div>
+                <div>
+                  <h4 className="font-extrabold text-gray-900 text-lg">Deleted Successfully!</h4>
+                  <p className="text-xs text-slate-500 mt-1">{deleteSuccess}</p>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center flex-shrink-0 border border-rose-100">
+                    <Trash2 size={20} />
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="font-extrabold text-gray-900 text-base leading-tight">Delete Question?</h4>
+                    <p className="text-xs text-slate-500 leading-normal">
+                      Are you sure you want to permanently delete this question from the survey? This action cannot be undone.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Preview of the question being deleted */}
+                <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-100 text-xs">
+                  <p className="text-slate-400 font-bold uppercase tracking-wider mb-1">Question Content</p>
+                  <p className="font-bold text-slate-700 italic">"{questionToDelete.questionText}"</p>
+                </div>
+
+                {/* Error presentation */}
+                {deleteError && (
+                  <div className="p-3 bg-rose-50 border border-rose-150 rounded-xl text-rose-700 text-xs flex items-start gap-2.5 font-medium">
+                    <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
+                    <span>{deleteError}</span>
+                  </div>
+                )}
+
+                {/* Control Buttons */}
+                <div className="flex justify-end gap-2.5 pt-2 border-t border-slate-100">
+                  <button
+                    onClick={() => {
+                      setShowDeleteConfirm(false);
+                      setQuestionToDelete(null);
+                      setDeleteError(null);
+                    }}
+                    disabled={deleting}
+                    className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-xl border border-slate-200 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleDeleteConfirm}
+                    disabled={deleting}
+                    className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-md shadow-rose-100 transition-all duration-200"
+                  >
+                    {deleting ? (
+                      <>
+                        <RefreshCw size={12} className="animate-spin" />
+                        Deleting...
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 size={12} />
+                        Yes, Delete
+                      </>
+                    )}
+                  </button>
+                </div>
+              </>
+            )}
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
