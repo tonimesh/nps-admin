@@ -9,7 +9,9 @@ import {
   Layers,
   ChevronRight,
   ClipboardList,
-  Trash2
+  Trash2,
+  Edit,
+  Save
 } from 'lucide-react';
 
 const SurveyQuestionsModal = ({ survey, onClose }) => {
@@ -25,11 +27,121 @@ const SurveyQuestionsModal = ({ survey, onClose }) => {
   const [deleteError, setDeleteError] = useState(null);
   const [deleteSuccess, setDeleteSuccess] = useState(null);
 
+  // Question editing state
+  const [editingQuestionId, setEditingQuestionId] = useState(null);
+  const [editForm, setEditForm] = useState(null);
+  const [updating, setUpdating] = useState(false);
+  const [updateError, setUpdateError] = useState(null);
+  const [updateSuccess, setUpdateSuccess] = useState(null);
+
   const handleDeleteClick = (question) => {
     setQuestionToDelete(question);
     setShowDeleteConfirm(true);
     setDeleteError(null);
     setDeleteSuccess(null);
+  };
+
+  const handleEditClick = (question) => {
+    setEditingQuestionId(question.questionId);
+    setEditForm({
+      id: question.questionId,
+      questionText: question.questionText || '',
+      questionType: question.questionType || 'RATING',
+      displayOrder: question.displayOrder ?? 1,
+      ratingMin: question.ratingMin ?? 0,
+      ratingMax: question.ratingMax ?? 10,
+      enableComments: question.enableComments ?? false,
+      requiredComments: question.requiredComments ?? false,
+      commentsPlaceholder: question.commentsPlaceholder || '',
+      commentText: question.commentText || '',
+      required: question.required ?? true,
+      status: question.status || 'ACTIVE'
+    });
+    setUpdateError(null);
+    setUpdateSuccess(null);
+  };
+
+  const handleUpdateSubmit = async () => {
+    if (!survey?.id || !editingQuestionId) return;
+
+    try {
+      setUpdating(true);
+      setUpdateError(null);
+      setUpdateSuccess(null);
+      const accessToken = localStorage.getItem('accessToken');
+
+      // The API expects an array of question objects for PUT
+      const payload = [
+        {
+          id: editForm.id,
+          questionText: editForm.questionText,
+          questionType: editForm.questionType,
+          displayOrder: editForm.displayOrder,
+          ratingMin: editForm.ratingMin,
+          ratingMax: editForm.ratingMax,
+          enableComments: editForm.enableComments,
+          requiredComments: editForm.requiredComments,
+          commentsPlaceholder: editForm.commentsPlaceholder,
+          commentText: editForm.commentText,
+          required: editForm.required,
+          status: editForm.status
+        }
+      ];
+
+      const response = await fetch(`https://adminnps.ayursinfotech.com/api/survey-config/questions/${survey.id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': accessToken || '',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to update question (Status: ${response.status})`);
+      }
+
+      const resData = await response.json();
+
+      if (resData.status === 'SUCCESS') {
+        setUpdateSuccess(resData.message || "Question updated successfully!");
+        
+        // Update local state so UI updates immediately
+        setQuestions(prev => prev.map(q => {
+          if (q.questionId === editingQuestionId) {
+            return {
+              ...q,
+              questionText: editForm.questionText,
+              questionType: editForm.questionType,
+              displayOrder: editForm.displayOrder,
+              ratingMin: editForm.ratingMin,
+              ratingMax: editForm.ratingMax,
+              enableComments: editForm.enableComments,
+              requiredComments: editForm.requiredComments,
+              commentsPlaceholder: editForm.commentsPlaceholder,
+              commentText: editForm.commentText,
+              required: editForm.required,
+              status: editForm.status
+            };
+          }
+          return q;
+        }));
+
+        // Exit edit mode after showing success briefly
+        setTimeout(() => {
+          setEditingQuestionId(null);
+          setEditForm(null);
+          setUpdateSuccess(null);
+        }, 1200);
+      } else {
+        throw new Error(resData.message || 'Failed to update question.');
+      }
+    } catch (err) {
+      console.error('Error updating question:', err);
+      setUpdateError(err.message || 'Failed to update question');
+    } finally {
+      setUpdating(false);
+    }
   };
 
   const handleDeleteConfirm = async () => {
@@ -240,6 +352,218 @@ const SurveyQuestionsModal = ({ survey, onClose }) => {
                     ratingOptions.push(i);
                   }
 
+                  // If this question is being edited, render the premium inline form
+                  if (editingQuestionId === question.questionId) {
+                    return (
+                      <div 
+                        key={question.questionId || index} 
+                        className="bg-white rounded-2xl border-2 border-indigo-500 p-6 shadow-md transition-all duration-300 relative overflow-hidden space-y-4 animate-fadeIn"
+                      >
+                        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                          <div className="flex items-center gap-2">
+                            <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-indigo-600 text-white font-extrabold text-xs">
+                              {displayIdx}
+                            </span>
+                            <h5 className="font-extrabold text-gray-900 text-sm tracking-wide">
+                              Editing Question Config
+                            </h5>
+                          </div>
+                          <span className="px-2.5 py-0.5 text-[10px] font-extrabold uppercase rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100">
+                            {editForm.questionType}
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          {/* Question Text */}
+                          <div className="col-span-1 sm:col-span-2">
+                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Question Text *</label>
+                            <input 
+                              type="text" 
+                              required
+                              value={editForm.questionText} 
+                              onChange={(e) => setEditForm({...editForm, questionText: e.target.value})} 
+                              className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all font-semibold text-slate-800"
+                              placeholder="e.g. How likely are you to recommend our product?"
+                            />
+                          </div>
+
+                          {/* Question Type & Display Order */}
+                          <div>
+                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Question Type</label>
+                            <select 
+                              value={editForm.questionType} 
+                              onChange={(e) => setEditForm({...editForm, questionType: e.target.value})} 
+                              className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all font-semibold text-slate-800"
+                            >
+                              <option value="RATING">RATING</option>
+                              <option value="NPS">NPS</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Display Order</label>
+                            <input 
+                              type="number" 
+                              min="1"
+                              value={editForm.displayOrder} 
+                              onChange={(e) => setEditForm({...editForm, displayOrder: parseInt(e.target.value) || 1})} 
+                              className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all font-semibold text-slate-800"
+                            />
+                          </div>
+
+                          {/* Rating Min & Rating Max */}
+                          <div>
+                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Min Rating</label>
+                            <input 
+                              type="number" 
+                              value={editForm.ratingMin} 
+                              onChange={(e) => setEditForm({...editForm, ratingMin: parseInt(e.target.value) ?? 0})} 
+                              className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all font-semibold text-slate-800"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Max Rating</label>
+                            <input 
+                              type="number" 
+                              value={editForm.ratingMax} 
+                              onChange={(e) => setEditForm({...editForm, ratingMax: parseInt(e.target.value) ?? 10})} 
+                              className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all font-semibold text-slate-800"
+                            />
+                          </div>
+
+                          {/* Status & Required Checkbox */}
+                          <div>
+                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Status</label>
+                            <select 
+                              value={editForm.status} 
+                              onChange={(e) => setEditForm({...editForm, status: e.target.value})} 
+                              className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all font-semibold text-slate-800"
+                            >
+                              <option value="ACTIVE">ACTIVE</option>
+                              <option value="INACTIVE">INACTIVE</option>
+                            </select>
+                          </div>
+                          <div className="flex items-center pt-5">
+                            <label className="relative flex items-center gap-2.5 cursor-pointer select-none">
+                              <input 
+                                type="checkbox" 
+                                checked={editForm.required} 
+                                onChange={(e) => setEditForm({...editForm, required: e.target.checked})} 
+                                className="w-4 h-4 rounded text-indigo-600 border-slate-300 focus:ring-indigo-500 focus:ring-offset-0 cursor-pointer"
+                              />
+                              <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">Required Question</span>
+                            </label>
+                          </div>
+
+                          {/* Comments Option Config */}
+                          <div className="col-span-1 sm:col-span-2 bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-4">
+                            <div className="flex items-center justify-between">
+                              <span className="flex items-center gap-1.5 text-xs font-bold text-slate-655 flex-shrink-0">
+                                <MessageSquare size={14} className="text-indigo-650" />
+                                COMMENTS OPTION
+                              </span>
+                              <label className="relative flex items-center gap-2 cursor-pointer select-none">
+                                <input 
+                                  type="checkbox" 
+                                  checked={editForm.enableComments} 
+                                  onChange={(e) => setEditForm({...editForm, enableComments: e.target.checked})} 
+                                  className="w-4 h-4 rounded text-indigo-600 border-slate-300 focus:ring-indigo-500 focus:ring-offset-0 cursor-pointer"
+                                />
+                                <span className="text-xs font-bold text-slate-600">Enable Comments</span>
+                              </label>
+                            </div>
+
+                            {editForm.enableComments && (
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-slate-200/50 animate-fadeIn">
+                                <div>
+                                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Comment Box Label</label>
+                                  <input 
+                                    type="text" 
+                                    value={editForm.commentText} 
+                                    onChange={(e) => setEditForm({...editForm, commentText: e.target.value})} 
+                                    className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-semibold text-slate-800"
+                                    placeholder="e.g. Reason for your rating"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Placeholder Text</label>
+                                  <input 
+                                    type="text" 
+                                    value={editForm.commentsPlaceholder} 
+                                    onChange={(e) => setEditForm({...editForm, commentsPlaceholder: e.target.value})} 
+                                    className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-semibold text-slate-800"
+                                    placeholder="e.g. Tell us why you gave this score..."
+                                  />
+                                </div>
+                                <div className="col-span-1 sm:col-span-2 flex items-center">
+                                  <label className="relative flex items-center gap-2 cursor-pointer select-none">
+                                    <input 
+                                      type="checkbox" 
+                                      checked={editForm.requiredComments} 
+                                      onChange={(e) => setEditForm({...editForm, requiredComments: e.target.checked})} 
+                                      className="w-4 h-4 rounded text-indigo-600 border-slate-300 focus:ring-indigo-500 focus:ring-offset-0 cursor-pointer"
+                                    />
+                                    <span className="text-xs font-bold text-slate-650">Make Comment Mandatory</span>
+                                  </label>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Error Presentation */}
+                          {updateError && (
+                            <div className="col-span-1 sm:col-span-2 p-3 bg-rose-50 border border-rose-150 rounded-xl text-rose-700 text-xs flex items-start gap-2.5 font-medium animate-fadeIn">
+                              <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
+                              <span>{updateError}</span>
+                            </div>
+                          )}
+
+                          {/* Success Presentation */}
+                          {updateSuccess && (
+                            <div className="col-span-1 sm:col-span-2 p-3 bg-emerald-50 border border-emerald-150 rounded-xl text-emerald-800 text-xs flex items-center gap-2.5 font-semibold animate-fadeIn">
+                              <CheckCircle size={15} className="text-emerald-600 flex-shrink-0 animate-bounce" />
+                              <span>{updateSuccess}</span>
+                            </div>
+                          )}
+
+                          {/* Action Buttons */}
+                          <div className="col-span-1 sm:col-span-2 flex justify-end gap-2.5 pt-3 border-t border-slate-100">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingQuestionId(null);
+                                setEditForm(null);
+                                setUpdateError(null);
+                              }}
+                              disabled={updating}
+                              className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-xl border border-slate-200 transition-colors"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleUpdateSubmit}
+                              disabled={updating}
+                              className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-md shadow-indigo-100 transition-all duration-200"
+                            >
+                              {updating ? (
+                                <>
+                                  <RefreshCw size={12} className="animate-spin" />
+                                  Saving...
+                                </>
+                              ) : (
+                                <>
+                                  <Save size={12} />
+                                  Save Changes
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // Default read-only display card
                   return (
                     <div 
                       key={question.questionId || index} 
@@ -257,6 +581,11 @@ const SurveyQuestionsModal = ({ survey, onClose }) => {
                           <span className="px-2.5 py-0.5 text-[10px] font-extrabold uppercase rounded-full bg-slate-100 text-slate-650 border border-slate-200">
                             {question.questionType || 'RATING'}
                           </span>
+                          {question.status === 'INACTIVE' && (
+                            <span className="px-2 py-0.5 text-[9px] font-extrabold rounded-full bg-slate-100 text-slate-400 border border-slate-200">
+                              INACTIVE
+                            </span>
+                          )}
                         </div>
                         
                         <div className="flex items-center gap-2">
@@ -270,9 +599,18 @@ const SurveyQuestionsModal = ({ survey, onClose }) => {
                               Optional
                             </span>
                           )}
+                          
+                          <button
+                            onClick={() => handleEditClick(question)}
+                            className="p-1.5 rounded-lg text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50 border border-transparent hover:border-indigo-100 transition-all duration-200 ml-1"
+                            title="Edit Question"
+                          >
+                            <Edit size={13} />
+                          </button>
+                          
                           <button
                             onClick={() => handleDeleteClick(question)}
-                            className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 border border-transparent hover:border-rose-100 transition-all duration-200 ml-1"
+                            className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 border border-transparent hover:border-rose-100 transition-all duration-200"
                             title="Delete Question"
                           >
                             <Trash2 size={13} />
@@ -286,7 +624,7 @@ const SurveyQuestionsModal = ({ survey, onClose }) => {
                       </p>
 
                       {/* Visual components based on Type */}
-                      {question.questionType === 'RATING' && (
+                      {(question.questionType === 'RATING' || question.questionType === 'NPS') && (
                         <div className="mt-4 space-y-2.5">
                           <div className="flex items-center justify-between text-[11px] font-extrabold text-slate-400 uppercase tracking-wider px-0.5">
                             <span>Score: {min} (Lowest)</span>
