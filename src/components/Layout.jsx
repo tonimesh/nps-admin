@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useBrand } from '../context/BrandContext';
 import { useUser } from '../context/UserContext';
+import { brandThemes } from '../themes/brandThemes';
 
 const Layout = ({ children, user, setUser }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -32,12 +33,17 @@ const Layout = ({ children, user, setUser }) => {
 
   const { selectedBrand, userBrands, switchBrand } = useBrand();
 
+    const activeTheme =
+      brandThemes[selectedBrand?.brandName] ||
+      brandThemes[selectedBrand?.name] ||
+      brandThemes.DEFAULT;
+
   const { logout } = useUser();
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Brands', href: '/brands', icon: Building },
-    { name: 'Stores', href: '/stores', icon: Store },
+    // { name: 'Stores', href: '/stores', icon: Store },
     { name: 'Create Survey', href: '/create-survey', icon: PlusCircle },
     { name: 'Survey Management', href: '/survey-management', icon: ClipboardList },
     // { name: 'Survey Preview', href: '/survey-preview', icon: Eye },
@@ -258,13 +264,13 @@ const Layout = ({ children, user, setUser }) => {
               <div className="flex items-center gap-4">
                 <div>
 
-                  <span className="text-2xl font-bold text-orange-600 flex items-center">
+                  <span className={`text-2xl font-bold  flex items-center`}>
                     {selectedBrand.logo ? (
                       <img src={`https://ayursinfotech.com${selectedBrand.logo}`} alt={selectedBrand.name} className="w-10 h-10 rounded-full object-cover" />
                     ) : (
                       '🍔'
                     )}
-                    {selectedBrand.name}
+                    <span className={`ml-2 ${activeTheme?.accent}`}>{selectedBrand.name}</span>
                   </span>
 
                   <div className="flex items-center ms-2">

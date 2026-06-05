@@ -324,6 +324,11 @@ const SurveyManagement = () => {
             {/* Core configuration metadata */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
               <div className="p-3 bg-gray-50 rounded-lg">
+                <p className="text-gray-400 font-medium mb-0.5">SURVEY ID
+                </p>
+                <p className="font-bold text-gray-800 font-mono text-[13px]">{survey.id || 'N/A'}</p>
+              </div>
+              <div className="p-3 bg-gray-50 rounded-lg">
                 <p className="text-gray-400 font-medium mb-0.5">Brand Code</p>
                 <p className="font-bold text-gray-800 font-mono text-[13px]">{survey.brandCode || 'N/A'}</p>
               </div>

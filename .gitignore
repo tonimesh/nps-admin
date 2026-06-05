@@ -12,7 +12,7 @@ node_modules
 dist
 dist-ssr
 *.local
-*.refact
+.refact/
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

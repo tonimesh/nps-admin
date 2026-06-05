@@ -8,22 +8,18 @@ import {
 } from 'lucide-react';
 
 import api from '../services/apiService';
-
 import { useBrand } from '../context/BrandContext';
+import { scheduleTokenRefresh } from '../services/apiService';
 
 const Login = ({ setUser }) => {
   const navigate = useNavigate();
-
   const { setBrandsFromLogin } = useBrand();
 
-  const [email, setEmail] =
-    useState('');
-
-  const [password, setPassword] =
-    useState('');
-
-  const [showPassword, setShowPassword] =
-    useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const texts = [
     'Customer Intelligence Platform .',
@@ -31,31 +27,16 @@ const Login = ({ setUser }) => {
     'Turn Feedback Into Growth .',
   ];
 
-  const [displayText, setDisplayText] =
-    useState('');
-
-  const [textIndex, setTextIndex] =
-    useState(0);
-
-  const [charIndex, setCharIndex] =
-    useState(0);
-
-  const [loading, setLoading] =
-    useState(false);
-
-  const [error, setError] =
-    useState('');
-
+  const [displayText, setDisplayText] = useState('');
+  const [textIndex, setTextIndex] = useState(0);
+  const [charIndex, setCharIndex] = useState(0);
 
   useEffect(() => {
     const currentText = texts[textIndex];
 
     if (charIndex < currentText.length) {
       const timeout = setTimeout(() => {
-        setDisplayText((prev) =>
-          prev + currentText[charIndex]
-        );
-
+        setDisplayText((prev) => prev + currentText[charIndex]);
         setCharIndex((prev) => prev + 1);
       }, 70);
 
@@ -64,16 +45,10 @@ const Login = ({ setUser }) => {
       const pauseTimeout = setTimeout(() => {
         setDisplayText('');
         setCharIndex(0);
-
-        setTextIndex((prev) =>
-          prev === texts.length - 1
-            ? 0
-            : prev + 1
-        );
+        setTextIndex((prev) => prev === texts.length - 1 ? 0 : prev + 1);
       }, 2200);
 
-      return () =>
-        clearTimeout(pauseTimeout);
+      return () => clearTimeout(pauseTimeout);
     }
   }, [charIndex, textIndex]);
 
@@ -82,70 +57,51 @@ const Login = ({ setUser }) => {
 
     try {
       setLoading(true);
+      setError('');
 
-      const response = await api.post(
-        '/v1/auth/login',
-        {
-          email,
-          password,
-        }
-      );
+      const response = await api.post('/v1/auth/login', {
+        email,
+        password,
+      });
 
-      const responseData =
-        response.data.data;
+      const responseData = response.data.data;
+      const userDetails = responseData.user_details;
 
-      const userDetails =
-        responseData.user_details;
+      // Store tokens and expiry
+      localStorage.setItem('accessToken', responseData.access_token);
+      localStorage.setItem('refreshToken', responseData.refresh_token);
+      localStorage.setItem('tokenDuration', responseData.duration);
+      localStorage.setItem('tokenExpiresAt', responseData.expires_at);
 
-      localStorage.setItem(
-        'accessToken',
-        responseData.access_token
-      );
+      // Format brands
+      const formattedBrands = userDetails.brand_details.map((brand) => ({
+        id: brand.id,
+        name: brand.brandName,
+        logo: brand.logoPath,
+        code: brand.brandCode,
+        email: brand.contactEmail,
+        phone: brand.contactNumber,
+        address: brand.address,
+        industry: brand.industryType,
+        status: brand.status,
+        themeConfig: brand.themeConfig,
+      }));
 
-      localStorage.setItem(
-        'refreshToken',
-        responseData.refresh_token
-      );
-
-      localStorage.setItem(
-        'tokenDuration',
-        responseData.duration
-      );
-
-      const formattedBrands =
-        userDetails.brand_details.map(
-          (brand) => ({
-            id: brand.id,
-            name: brand.brandName,
-            logo: brand.logoPath,
-            code: brand.brandCode,
-            email: brand.contactEmail,
-            phone: brand.contactNumber,
-            address: brand.address,
-            industry:
-              brand.industryType,
-            status: brand.status,
-          })
-        );
-
-      setBrandsFromLogin(
-        formattedBrands
-      );
+      setBrandsFromLogin(formattedBrands);
 
       const userData = {
         email: userDetails.email,
-        fullName:
-          userDetails.full_name,
+        fullName: userDetails.full_name,
       };
 
       setUser(userData);
+      
+      // Schedule token refresh
+      scheduleTokenRefresh();
 
       navigate('/dashboard');
     } catch (err) {
-      setError(
-        err.response?.data?.message ||
-        'Login failed'
-      );
+      setError(err.response?.data?.message || 'Login failed');
     } finally {
       setLoading(false);
     }
@@ -157,7 +113,6 @@ const Login = ({ setUser }) => {
         <div className="text-center mb-2">
           <h1 className="text-4xl font-black">
             <span>Net</span>
-
             <span className="bg-gradient-to-r from-orange-500 to-amber-400 bg-clip-text text-transparent">
               ly.
             </span>
@@ -166,10 +121,6 @@ const Login = ({ setUser }) => {
           <div className="h-7 flex items-center justify-center">
             <p className="text-gray-500 font-medium text-sm tracking-wide">
               {displayText}
-
-              {/* <span className="animate-pulse text-orange-500">
-                .
-              </span> */}
             </p>
           </div>
         </div>
@@ -179,10 +130,7 @@ const Login = ({ setUser }) => {
             Welcome Back
           </h2>
 
-          <form
-            onSubmit={handleSubmit}
-            className="space-y-5"
-          >
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="text-sm font-semibold text-gray-700 mb-2 block">
                 Email
@@ -190,15 +138,13 @@ const Login = ({ setUser }) => {
 
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-orange-400" />
-
                 <input
                   type="email"
                   value={email}
-                  onChange={(e) =>
-                    setEmail(e.target.value)
-                  }
-                  className="w-full h-14 rounded-2xl border border-orange-100 bg-orange-50/40 pl-12 pr-4 outline-none"
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full h-14 rounded-2xl border border-orange-100 bg-orange-50/40 pl-12 pr-4 outline-none focus:border-orange-400 focus:ring-4 focus:ring-orange-100 transition-all"
                   placeholder="Enter email"
+                  required
                 />
               </div>
             </div>
@@ -210,29 +156,21 @@ const Login = ({ setUser }) => {
 
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-orange-400" />
-
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
-                  onChange={(e) =>
-                    setPassword(e.target.value)
-                  }
+                  onChange={(e) => setPassword(e.target.value)}
                   className="w-full h-14 rounded-2xl border border-orange-100 bg-orange-50/40 pl-12 pr-12 outline-none focus:border-orange-400 focus:ring-4 focus:ring-orange-100 transition-all"
                   placeholder="Enter Password"
+                  required
                 />
 
                 <button
                   type="button"
-                  onClick={() =>
-                    setShowPassword(!showPassword)
-                  }
+                  onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-orange-500 transition-colors"
                 >
-                  {showPassword ? (
-                    <EyeOff size={20} />
-                  ) : (
-                    <Eye size={20} />
-                  )}
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
             </div>
@@ -246,11 +184,9 @@ const Login = ({ setUser }) => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full h-14 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-400 text-white font-semibold"
+              className="w-full h-14 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-400 text-white font-semibold hover:opacity-90 transition-all disabled:opacity-50"
             >
-              {loading
-                ? 'Signing In...'
-                : 'Sign In'}
+              {loading ? 'Signing In...' : 'Sign In'}
             </button>
           </form>
         </div>

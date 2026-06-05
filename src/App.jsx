@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   BrowserRouter as Router,
   Routes,
@@ -16,14 +16,16 @@ import Brands from './components/Brands';
 import Layout from './components/Layout';
 
 import { BrandProvider } from './context/BrandContext';
-
-import {
-  UserProvider,
-  useUser,
-} from './context/UserContext';
+import { UserProvider, useUser } from './context/UserContext';
+import api, { setupTokenRefresh } from './services/apiService';
 
 const AppRoutes = () => {
   const { user, setUser } = useUser();
+
+  useEffect(() => {
+    // Setup token refresh on app load
+    setupTokenRefresh();
+  }, []);
 
   return (
     <Routes>
@@ -40,9 +42,7 @@ const AppRoutes = () => {
               <Routes>
                 <Route
                   path="/"
-                  element={
-                    <Navigate to="/dashboard" />
-                  }
+                  element={<Navigate to="/dashboard" />}
                 />
 
                 <Route
@@ -77,10 +77,7 @@ const AppRoutes = () => {
               </Routes>
             </Layout>
           ) : (
-            <Navigate
-              to="/login"
-              replace
-            />
+            <Navigate to="/login" replace />
           )
         }
       />

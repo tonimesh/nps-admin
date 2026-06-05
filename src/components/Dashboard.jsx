@@ -95,8 +95,7 @@ const Dashboard = () => {
 
   const { selectedBrand } = useBrand();
   const [selectedPeriod, setSelectedPeriod] = useState('6m');
-  const [npsData, setNpsData] =
-    useState(mockNPSData);
+  const [npsData, setNpsData] = useState([]);
 
   const [dashboardSummary, setDashboardSummary] =
     useState({
@@ -109,14 +108,21 @@ const Dashboard = () => {
       totalSurvey: 0,
     });
 
+  const [monthlyData, setMonthlyData] = useState([]);
+
   const [loading, setLoading] =
     useState(false);
 
-
+  // useEffect(() => {
+  //   if (monthlyData.length > 0) {
+  //     setNpsData(monthlyData);
+  //   }
+  // }, [monthlyData]);
 
   useEffect(() => {
     if (selectedBrand?.id) {
       fetchDashboardSummary();
+      fetchMonthlyAnalytics();
     }
   }, [selectedBrand]);
 
@@ -136,8 +142,50 @@ const Dashboard = () => {
     }
   };
 
-  const currentNPS = npsData[npsData.length - 1].score;
-  const previousNPS = npsData[npsData.length - 2].score;
+  const fetchMonthlyAnalytics = async () => {
+    try {
+      const response = await api.post(
+        `v1/survey/summary/monthly/${selectedBrand.id}`,
+        {
+          startDate: '2026-01-01',
+          endDate: '2026-12-12',
+        }
+      );
+
+      const formattedData = response.data.map((item) => ({
+        month: new Date(
+          item.year,
+          item.month - 1
+        ).toLocaleString('default', {
+          month: 'short',
+        }),
+
+        score: item.npsScore,
+
+        responses: item.totalUserSurveyed,
+
+        promoters: item.promoterCount,
+
+        passives: item.passiveCount,
+
+        detractors: item.detractorsCount,
+      }));
+
+      setNpsData(formattedData);
+
+    } catch (error) {
+      console.log(error);
+
+      setNpsData([]);
+    }
+  };
+
+  const currentNPS =
+    npsData[npsData.length - 1]?.score || 0;
+
+  const previousNPS =
+    npsData[npsData.length - 2]?.score || 0;
+
   const npsChange = currentNPS - previousNPS;
   const totalResponses =
     dashboardSummary.totalUserSurveyed || 0;
@@ -301,19 +349,36 @@ const Dashboard = () => {
             </select>
           </div>
           <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={npsData}>
-              <defs>
-                <linearGradient id="npsGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#f97316" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis domain={[0, 100]} />
-              <Tooltip />
-              <Area type="monotone" dataKey="score" stroke="#f97316" fill="url(#npsGradient)" />
-            </AreaChart>
+            {npsData.length > 0 ? (
+              <AreaChart data={npsData}>
+                <defs>
+                  <linearGradient id="npsGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#f97316" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis domain={[0, 100]} />
+                <Tooltip />
+                <Area type="monotone" dataKey="score" stroke="#f97316" fill="url(#npsGradient)" />
+              </AreaChart>) : (
+              <div className="w-full h-[300px] flex items-end justify-between px-6 pb-6">
+                {[40, 55, 35, 60, 45, 70].map((height, index) => (
+                  <div
+                    key={index}
+                    className="flex flex-col items-center gap-2"
+                  >
+                    <div
+                      className="w-10 bg-gray-200 rounded-t-md"
+                      style={{ height: `${height * 2}px` }}
+                    />
+
+                    <div className="w-8 h-2 bg-gray-200 rounded" />
+                  </div>
+                ))}
+              </div>
+            )}
           </ResponsiveContainer>
         </div>
 
@@ -394,13 +459,30 @@ const Dashboard = () => {
         <div className="card">
           <h3 className="font-semibold text-gray-900 mb-4">Response Volume</h3>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={npsData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="responses" fill="#3b82f6" radius={[8, 8, 0, 0]} />
-            </BarChart>
+            {npsData.length > 0 ? (
+              <BarChart data={npsData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="responses" fill="#3b82f6" radius={[8, 8, 0, 0]} />
+              </BarChart>) : (
+              <div className="w-full h-[300px] flex items-end justify-between px-6 pb-6">
+                {[90, 140, 110, 170, 130, 190].map((height, index) => (
+                  <div
+                    key={index}
+                    className="flex flex-col items-center gap-2"
+                  >
+                    <div
+                      className="w-12 bg-gray-200 rounded-t-lg"
+                      style={{ height: `${height}px` }}
+                    />
+
+                    <div className="w-8 h-2 bg-gray-200 rounded" />
+                  </div>
+                ))}
+              </div>
+            )}
           </ResponsiveContainer>
         </div>
 

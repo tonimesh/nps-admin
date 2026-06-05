@@ -1,15 +1,26 @@
 import React, { useState } from 'react';
 import api from '../services/apiService';
-import { 
-  Plus, Trash2, GripVertical, Copy, ChevronDown, ChevronUp, 
+import {
+  Plus, Trash2, GripVertical, Copy, ChevronDown, ChevronUp,
   ArrowUp, ArrowDown, Eye, X, CheckCircle, FileText, Calendar,
-  Users, Settings, Star, Phone, Mail, Hash, AlertCircle
+  Users, Settings, Star, Phone, Mail, Hash, AlertCircle,
+  PenLine,
+  Check,
 } from 'lucide-react';
 import { useBrand } from '../context/BrandContext';
+import { useNavigate } from 'react-router-dom';
+import { brandThemes } from '../themes/brandThemes';
 
 const CreateSurvey = () => {
   const { selectedBrand } = useBrand();
-  
+
+  const activeTheme =
+    brandThemes[selectedBrand?.brandName] ||
+    brandThemes[selectedBrand?.name] ||
+    brandThemes.DEFAULT;
+
+  const navigate = useNavigate();
+
   // Basic Info
   const [surveyName, setSurveyName] = useState('');
   const [surveyCode, setSurveyCode] = useState('');
@@ -21,56 +32,60 @@ const CreateSurvey = () => {
   const [loading, setLoading] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [createdSurvey, setCreatedSurvey] = useState(null);
-  
+
+
   // Introduction Page
   const [introTitle, setIntroTitle] = useState('We value your feedback!');
   const [introDescription, setIntroDescription] = useState('Help us serve you better every day.');
   const [introButtonLabel, setIntroButtonLabel] = useState('Start Survey');
-  
+
   // Terms & Conditions
   const [termsDescription, setTermsDescription] = useState('By participating in this survey, you agree to our terms and conditions. Your feedback will be used to improve our services.');
   const [requireTerms, setRequireTerms] = useState(true);
-  
+
   // End Page
   const [endTitle, setEndTitle] = useState('Thank You!');
   const [endDescription, setEndDescription] = useState('Thank you for your valuable feedback. We appreciate your time and effort in helping us improve.');
   const [endButtonLabel, setEndButtonLabel] = useState(selectedBrand?.name || 'Visit Website');
   const [endButtonLink, setEndButtonLink] = useState('');
-  
+
   // Footer
   const [footer, setFooter] = useState('Your feedback is private • Better experience • Exclusive offers • We value your privacy');
-  
+
+  const [copied, setCopied] = useState(false);
+
+
   // Custom Fields
   const [customFields, setCustomFields] = useState([
-    { 
-      id: Date.now().toString(), 
-      fieldName: 'full_name', 
-      labelName: 'Full Name', 
+    {
+      id: Date.now().toString(),
+      fieldName: 'full_name',
+      labelName: 'Full Name',
       placeholder: 'Enter your full name',
       type: 'text',
       isRequired: false,
       enabled: true
     },
-    { 
-      id: (Date.now() + 1).toString(), 
-      fieldName: 'email', 
-      labelName: 'Email Address', 
+    {
+      id: (Date.now() + 1).toString(),
+      fieldName: 'email',
+      labelName: 'Email Address',
       placeholder: 'Enter your email',
       type: 'email',
       isRequired: false,
       enabled: true
     },
-    { 
-      id: (Date.now() + 2).toString(), 
-      fieldName: 'mobile_number', 
-      labelName: 'Mobile Number', 
+    {
+      id: (Date.now() + 2).toString(),
+      fieldName: 'mobile_number',
+      labelName: 'Mobile Number',
       placeholder: 'Enter your mobile number',
       type: 'tel',
       isRequired: true,
       enabled: true
     },
   ]);
-  
+
   // Questions - Only NPS type
   const [questions, setQuestions] = useState([
     { id: Date.now().toString(), text: 'How likely are you to recommend our food quality to friends and family?', type: 'nps', required: true },
@@ -79,7 +94,7 @@ const CreateSurvey = () => {
     { id: (Date.now() + 3).toString(), text: 'How likely are you to recommend our store ambience to others?', type: 'nps', required: true },
     { id: (Date.now() + 4).toString(), text: 'Overall, how likely are you to recommend our brand to friends and family?', type: 'nps', required: true },
   ]);
-  
+
   const [expandedQuestion, setExpandedQuestion] = useState(null);
   const [dragOverIndex, setDragOverIndex] = useState(null);
   const [showPreview, setShowPreview] = useState(true);
@@ -221,7 +236,7 @@ const CreateSurvey = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!surveyName || !surveyCode || !startDate || !endDate) {
       alert('Please fill in all required fields');
       return;
@@ -300,21 +315,35 @@ const CreateSurvey = () => {
         endDate: endDate,
         status: 'ACTIVE',
       });
-      
+
       setShowSuccessModal(true);
-      
+
       // Reset form
       setSurveyName('');
       setSurveyCode('');
       setDescription('');
       setStartDate('');
       setEndDate('');
-      
+
     } catch (error) {
       console.error('Error creating survey:', error);
       alert(error?.response?.data?.message || 'Failed to create survey');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCopySurveyId = async () => {
+    try {
+      await navigator.clipboard.writeText(createdSurvey.id);
+
+      setCopied(true);
+
+      setTimeout(() => {
+        setCopied(false);
+      }, 2000);
+    } catch (error) {
+      console.error("Copy failed", error);
     }
   };
 
@@ -327,7 +356,7 @@ const CreateSurvey = () => {
             {/* Basic Information */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <FileText size={20} className="text-orange-500" />
+                <FileText size={20} className={activeTheme?.accent} />
                 Basic Information
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -365,7 +394,7 @@ const CreateSurvey = () => {
             {/* Introduction Page */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <Star size={20} className="text-orange-500" />
+                <Star size={20} className={activeTheme?.accent} />
                 Introduction Page
               </h3>
               <div className="space-y-4">
@@ -388,10 +417,12 @@ const CreateSurvey = () => {
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                  <Users size={20} className="text-orange-500" />
+                  <Users size={20} className={activeTheme?.accent} />
                   Custom Fields
                 </h3>
-                <button type="button" onClick={addCustomField} className="text-sm bg-orange-500 text-white px-3 py-1.5 rounded-lg hover:bg-orange-600 transition-colors flex items-center gap-1">
+                <button type="button" onClick={addCustomField} className={`text-sm bg-gradient-to-r ${activeTheme?.button}
+  text-white px-3 py-1.5 rounded-lg hover:opacity-90
+  transition-all flex items-center gap-1 shadow-sm`}>
                   <Plus size={14} /> Add Field
                 </button>
               </div>
@@ -401,13 +432,13 @@ const CreateSurvey = () => {
                     <div className="flex items-center justify-between p-3 bg-gray-50">
                       <div className="flex items-center gap-2">
                         <span className="font-medium text-sm text-gray-900">{field.labelName || 'New Field'}</span>
-                        {field.isRequired && <span className="text-xs text-red-500">*Required</span>}
+                        {field.isRequired && <span className={`text-xs ${activeTheme?.accent}`}>*Required</span>}
                       </div>
                       <div className="flex items-center gap-1">
                         <button type="button" onClick={() => setExpandedCustomField(expandedCustomField === field.id ? null : field.id)} className="p-1 rounded hover:bg-gray-200">
                           <ChevronDown size={14} />
                         </button>
-                        <button type="button" onClick={() => removeCustomField(field.id)} className="p-1 rounded hover:bg-red-100 text-red-500">
+                        <button type="button" onClick={() => removeCustomField(field.id)} className={`p-1 rounded hover:bg-red-100 ${activeTheme?.accent}`}>
                           <Trash2 size={14} />
                         </button>
                       </div>
@@ -455,68 +486,185 @@ const CreateSurvey = () => {
                   <h3 className="text-lg font-semibold text-gray-900">Survey Questions (NPS Scale 0-10)</h3>
                   <p className="text-xs text-gray-500 mt-1">All questions use NPS scale (0 = Not Likely, 10 = Extremely Likely)</p>
                 </div>
-                <button type="button" onClick={addQuestion} className="text-sm bg-orange-500 text-white px-3 py-1.5 rounded-lg hover:bg-orange-600 transition-colors flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={addQuestion}
+                  className={`text-sm bg-gradient-to-r ${activeTheme?.button}
+  text-white px-3 py-1.5 rounded-lg hover:opacity-90
+  transition-all flex items-center gap-1 shadow-sm`}
+                >
                   <Plus size={14} /> Add Question
                 </button>
               </div>
               <div className="space-y-3">
-                {questions.map((question, index) => (
-                  <div
-                    key={question.id}
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, index)}
-                    onDragOver={(e) => handleDragOver(e, index)}
-                    onDragEnd={handleDragEnd}
-                    onDrop={(e) => handleDrop(e, index)}
-                    className={`border rounded-lg overflow-hidden transition-all ${dragOverIndex === index ? 'border-orange-500 bg-orange-50' : 'border-gray-200'}`}
-                  >
-                    <div className="flex items-center justify-between p-3 bg-gray-50">
-                      <div className="flex items-center gap-3">
-                        <div className="cursor-move"><GripVertical size={18} className="text-gray-400" /></div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-sm text-gray-900">Q{index + 1}</span>
-                          <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded">NPS Scale (0-10)</span>
-                          {question.required && <span className="text-xs text-red-500">*Required</span>}
+                {questions.map((question, index) => {
+                  const isExpanded = expandedQuestion === question.id;
+
+                  return (
+                    <div
+                      key={question.id}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, index)}
+                      onDragOver={(e) => handleDragOver(e, index)}
+                      onDragEnd={handleDragEnd}
+                      onDrop={(e) => handleDrop(e, index)}
+                      style={{
+                        borderColor:
+                          dragOverIndex === index
+                            ? activeTheme.primaryColor
+                            : '#E5E7EB',
+                        backgroundColor:
+                          dragOverIndex === index
+                            ? activeTheme.secondaryColor
+                            : 'white',
+                      }}
+                    >
+                      {/* HEADER */}
+                      <div className="p-4 bg-gray-50">
+                        <div className="flex items-start justify-between gap-3">
+
+                          {/* LEFT */}
+                          <div className="flex items-start gap-3 flex-1">
+                            <div className="cursor-move mt-1">
+                              <GripVertical size={18} className="text-gray-400" />
+                            </div>
+
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 flex-wrap mb-2">
+                                <span className="font-semibold text-sm text-gray-900">
+                                  Q{index + 1}
+                                </span>
+
+                                <span className={`text-xs px-2 py-0.5 ${activeTheme?.secondary} ${activeTheme?.accent} rounded`}>
+                                  NPS Scale (0-10)
+                                </span>
+
+                                {question.required && (
+                                  <span className={`text-xs ${activeTheme?.accent}`}>
+                                    *Required
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* QUESTION ALWAYS VISIBLE */}
+                              <p className="text-sm text-gray-800 font-medium leading-relaxed">
+                                {question.text}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* ACTIONS */}
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => moveQuestionUp(index)}
+                              disabled={index === 0}
+                              className="p-1.5 rounded-lg hover:bg-gray-200 disabled:opacity-40"
+                            >
+                              <ArrowUp size={14} />
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => moveQuestionDown(index)}
+                              disabled={index === questions.length - 1}
+                              className="p-1.5 rounded-lg hover:bg-gray-200 disabled:opacity-40"
+                            >
+                              <ArrowDown size={14} />
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => duplicateQuestion(question.id)}
+                              className="p-1.5 rounded-lg hover:bg-gray-200"
+                            >
+                              <Copy size={14} />
+                            </button>
+
+                            {/* EDIT BUTTON */}
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setExpandedQuestion(
+                                  isExpanded ? null : question.id
+                                )
+                              }
+                              className={`p-1.5 rounded-lg hover:bg-orange-100 ${activeTheme?.accent}`}
+                            >
+                              <PenLine size={14} />
+                            </button>
+
+                            {/* DELETE */}
+                            <button
+                              type="button"
+                              onClick={() => removeQuestion(question.id)}
+                              className={`p-1.5 rounded-lg hover:bg-red-100 ${activeTheme?.accent}`}
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <button type="button" onClick={() => moveQuestionUp(index)} disabled={index === 0} className="p-1 rounded hover:bg-gray-200 disabled:opacity-40"><ArrowUp size={14} /></button>
-                        <button type="button" onClick={() => moveQuestionDown(index)} disabled={index === questions.length - 1} className="p-1 rounded hover:bg-gray-200 disabled:opacity-40"><ArrowDown size={14} /></button>
-                        <button type="button" onClick={() => duplicateQuestion(question.id)} className="p-1 rounded hover:bg-gray-200"><Copy size={14} /></button>
-                        <button type="button" onClick={() => setExpandedQuestion(expandedQuestion === question.id ? null : question.id)} className="p-1 rounded hover:bg-gray-200">{expandedQuestion === question.id ? <ChevronUp size={14} /> : <ChevronDown size={14} />}</button>
-                        <button type="button" onClick={() => removeQuestion(question.id)} className="p-1 rounded hover:bg-red-100 text-red-500"><Trash2 size={14} /></button>
-                      </div>
+
+                      {/* EDIT SECTION */}
+                      {isExpanded && (
+                        <div className="p-4 border-t bg-white space-y-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Question Text
+                            </label>
+
+                            <input
+                              type="text"
+                              value={question.text}
+                              onChange={(e) =>
+                                updateQuestion(
+                                  question.id,
+                                  'text',
+                                  e.target.value
+                                )
+                              }
+                              className="input-field text-sm"
+                              placeholder="Enter your question here..."
+                            />
+                          </div>
+
+                          <label className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={question.required}
+                              onChange={(e) =>
+                                updateQuestion(
+                                  question.id,
+                                  'required',
+                                  e.target.checked
+                                )
+                              }
+                              className="rounded"
+                            />
+
+                            <span className="text-sm text-gray-700">
+                              Required question
+                            </span>
+                          </label>
+
+                          <div className="bg-blue-50 p-3 rounded-lg">
+                            <p className="text-xs text-blue-600">
+                              This question uses NPS scale (0-10)
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    {expandedQuestion === question.id && (
-                      <div className="p-3 space-y-3">
-                        <input
-                          type="text"
-                          value={question.text}
-                          onChange={(e) => updateQuestion(question.id, 'text', e.target.value)}
-                          className="input-field text-sm"
-                          placeholder="Enter your question here..."
-                        />
-                        <label className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            checked={question.required}
-                            onChange={(e) => updateQuestion(question.id, 'required', e.target.checked)}
-                            className="rounded"
-                          />
-                          <span className="text-sm text-gray-700">Required question</span>
-                        </label>
-                        <div className="bg-blue-50 p-2 rounded-lg">
-                          <p className="text-xs text-blue-600">This question uses NPS scale (0-10)</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
               {questions.length === 0 && (
                 <div className="text-center py-8 border-2 border-dashed rounded-lg">
                   <p className="text-gray-500 text-sm">No questions added yet</p>
-                  <button type="button" onClick={addQuestion} className="mt-2 text-orange-500 text-sm">+ Add your first question</button>
+                  <button type="button" onClick={addQuestion} className={`mt-2 ${activeTheme?.accent} text-sm`}>
+                    + Add your first question
+                  </button>
                 </div>
               )}
             </div>
@@ -524,7 +672,7 @@ const CreateSurvey = () => {
             {/* Footer */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <Settings size={20} className="text-orange-500" />
+                <Settings size={20} className={activeTheme?.accent} />
                 Footer
               </h3>
               <textarea value={footer} onChange={(e) => setFooter(e.target.value)} className="input-field" rows="2" />
@@ -533,7 +681,7 @@ const CreateSurvey = () => {
             {/* Terms & Conditions */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <AlertCircle size={20} className="text-orange-500" />
+                <AlertCircle size={20} className={activeTheme?.accent} />
                 Terms & Conditions
               </h3>
               <div className="space-y-4">
@@ -548,7 +696,7 @@ const CreateSurvey = () => {
             {/* End Page */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <Calendar size={20} className="text-orange-500" />
+                <Calendar size={20} className={activeTheme?.accent} />
                 End Page
               </h3>
               <div className="space-y-4">
@@ -561,7 +709,7 @@ const CreateSurvey = () => {
 
             <div className="flex justify-end gap-3">
               <button type="button" className="px-6 py-2.5 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors">Save as Draft</button>
-              <button type="submit" disabled={loading} className="px-6 py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl font-semibold hover:opacity-90 transition-all disabled:opacity-50">
+              <button type="submit" disabled={loading} className={`px-6 py-2.5 bg-gradient-to-r ${activeTheme?.button} text-white rounded-xl font-semibold hover:opacity-90 transition-all disabled:opacity-50`}>
                 {loading ? 'Creating...' : 'Create Survey'}
               </button>
             </div>
@@ -574,7 +722,7 @@ const CreateSurvey = () => {
             <div className="sticky top-6">
               <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
                 {/* Header */}
-                <div className={`${selectedBrand.name === 'KFC' ? 'bg-red-600' : selectedBrand.name === 'PIZZAHUT' ?  'bg-red-500' : ""} text-white p-6 text-center`}>
+                <div className={`${activeTheme.primary} text-white p-6 text-center`}>
                   <div className="text-4xl mb-2 flex items-center justify-center gap-2">
                     {selectedBrand.logo ? (
                       <img src={`https://ayursinfotech.com${selectedBrand.logo}`} alt={selectedBrand.name} className="w-14 h-14 rounded-xl object-cover" />
@@ -590,14 +738,14 @@ const CreateSurvey = () => {
                 {customFields.filter(f => f.enabled).length > 0 && (
                   <div className="p-6 border-b border-gray-100 bg-gray-50">
                     <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                      <Users size={16} className="text-orange-500" />
+                      <Users size={16} className={activeTheme?.accent} />
                       Tell us about yourself
                     </h3>
                     <div className="space-y-4">
                       {customFields.filter(f => f.enabled).map((field) => (
                         <div key={field.id}>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
-                            {field.labelName} {field.isRequired && <span className="text-red-500">*</span>}
+                            {field.labelName} {field.isRequired && <span className={activeTheme?.accent}>*</span>}
                           </label>
                           <input type={field.type} placeholder={field.placeholder} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all" disabled />
                         </div>
@@ -613,10 +761,12 @@ const CreateSurvey = () => {
                     {questions.map((question, idx) => (
                       <div key={question.id} className="border-b border-gray-100 pb-6">
                         <div className="flex items-start gap-2 mb-3">
-                          <span className="font-semibold text-orange-500 text-sm bg-orange-50 w-6 h-6 rounded-full flex items-center justify-center">{idx + 1}</span>
+                          <span className={`font-semibold ${activeTheme?.accent} text-sm } w-6 h-6 rounded-full flex items-center justify-center`}>
+                            {idx + 1}
+                          </span>
                           <div className="flex-1">
                             <p className="font-medium text-gray-800">{question.text}</p>
-                            {question.required && <span className="text-xs text-red-500">*Required</span>}
+                            {question.required && <span className={`text-xs ${activeTheme?.accent}`}>*Required</span>}
                           </div>
                         </div>
                         {renderPreviewQuestion(question, idx)}
@@ -624,7 +774,7 @@ const CreateSurvey = () => {
                     ))}
                   </div>
 
-                  <button className="w-full mt-8 bg-gradient-to-r from-orange-500 to-orange-600 text-white py-3 rounded-xl font-semibold hover:opacity-90 transition-all shadow-md">
+                  <button className={`w-full mt-8 bg-gradient-to-r ${activeTheme.button} text-white py-3 rounded-xl font-semibold hover:opacity-90 transition-all shadow-md`}>
                     Submit Feedback
                   </button>
                 </div>
@@ -649,7 +799,7 @@ const CreateSurvey = () => {
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-2">Survey Created Successfully!</h3>
               <p className="text-gray-500 mb-6">Your NPS survey has been created and is ready to use.</p>
-              
+
               <div className="bg-gray-50 rounded-xl p-4 mb-6 text-left space-y-2">
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-500">Survey Name:</span>
@@ -658,6 +808,32 @@ const CreateSurvey = () => {
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-500">Survey Code:</span>
                   <span className="text-sm font-medium text-gray-900">{createdSurvey.code}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-500">
+                    Survey ID:
+                  </span>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-gray-900 max-w-[180px] truncate">
+                      {createdSurvey.id}
+                    </span>
+
+                    <button
+                      onClick={handleCopySurveyId}
+                      className="text-orange-500 hover:text-orange-600 transition-colors"
+                      title="Copy Survey ID"
+                    >
+                      {copied ? (
+                        <Check
+                          size={16}
+                          className="text-green-500"
+                        />
+                      ) : (
+                        <Copy size={16} />
+                      )}
+                    </button>
+                  </div>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-500">NPS Questions:</span>
@@ -676,12 +852,16 @@ const CreateSurvey = () => {
                   <span className="text-sm font-medium text-yellow-600">{createdSurvey.status}</span>
                 </div>
               </div>
-              
+
               <div className="flex gap-3">
                 <button onClick={() => setShowSuccessModal(false)} className="flex-1 px-4 py-2 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors">
                   Close
                 </button>
-                <button onClick={() => { setShowSuccessModal(false); window.location.href = '/survey-management'; }} className="flex-1 px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl font-semibold hover:opacity-90 transition-colors">
+                <button onClick={() => {
+                  setShowSuccessModal(false);
+                  navigate("/survey-management")
+
+                }} className="flex-1 px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl font-semibold hover:opacity-90 transition-colors">
                   View Surveys
                 </button>
               </div>
